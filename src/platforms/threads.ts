@@ -1,8 +1,8 @@
 import path from "node:path";
 import { config } from "../config.js";
-import type { VideoFormat, VideoInfo } from "../extractor.js";
-import { ExtractError } from "../extractor.js";
-import type { DownloadJob } from "../queue.js";
+import type { VideoFormat, VideoInfo } from "../services/extractor.js";
+import { ExtractError } from "../services/extractor.js";
+import type { DownloadJob } from "../services/queue.js";
 import type { PlatformConfig } from "./types.js";
 
 function decodeHtmlEntities(text: string): string {

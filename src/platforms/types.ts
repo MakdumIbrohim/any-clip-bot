@@ -1,5 +1,5 @@
-import type { VideoInfo } from "../extractor.js";
-import type { DownloadJob } from "../queue.js";
+import type { VideoInfo } from "../services/extractor.js";
+import type { DownloadJob } from "../services/queue.js";
 
 export type PlatformId =
   | "youtube"

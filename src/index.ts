@@ -2,8 +2,8 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { assertConfig, config } from "./config.js";
 import "./db.js";
-import { bot } from "./bot.js";
-import { sweepStaleTmp } from "./downloader.js";
+import { bot } from "./bot/index.js";
+import { sweepStaleTmp } from "./services/index.js";
 
 function checkBinary(name: string, bin: string): boolean {
   try {
