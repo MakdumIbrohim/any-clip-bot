@@ -99,6 +99,9 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
   if (config.youTubeCookies && job.platform === "youtube") {
     args.push("--cookies", config.youTubeCookies);
   }
+  if (config.facebookCookies && job.platform === "facebook") {
+    args.push("--cookies", config.facebookCookies);
+  }
   if (job.kind.type === "audio") {
     args.push("-x", "--audio-format", "mp3", "--audio-quality", "5");
   } else if (job.kind.type === "image") {

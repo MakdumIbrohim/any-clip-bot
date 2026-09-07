@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { config } from "../config.js";
 import { getPlatformConfig, type Platform } from "../platforms/index.js";
 import { fetchInstagramEmbedInfo } from "../platforms/instagram.js";
+import { fetchFacebookPhotoInfo } from "../platforms/facebook.js";
 
 const pexecFile = promisify(execFile);
 
@@ -53,9 +54,13 @@ export class ExtractError extends Error {
 
 function classifyError(stderr: string): ExtractError {
   const s = stderr.toLowerCase();
-  if (/private video|members-only|log in to confirm|account needs/.test(s))
+  if (
+    /private video|members-only|log in to confirm|account needs|only available for registered users/i.test(
+      s,
+    )
+  )
     return new ExtractError(
-      "Konten ini privat atau butuh login. Tidak bisa diunduh.",
+      "Konten ini privat atau butuh login. Tidak bisa diunduh tanpa cookies.",
       "private",
     );
   if (/age[- ]restricted|confirm your age/.test(s))
@@ -79,6 +84,11 @@ function classifyError(stderr: string): ExtractError {
     return new ExtractError(
       "Waktu proses sumber habis. Coba lagi sebentar.",
       "timeout",
+    );
+  if (/cannot parse data/i.test(s))
+    return new ExtractError(
+      "Gagal mengambil info dari platform. yt-dlp tidak bisa parse data (mungkin format berubah atau post bukan video).",
+      "error",
     );
   return new ExtractError(
     "Gagal mengambil info dari platform. Mungkin struktur berubah.",
@@ -106,7 +116,7 @@ async function runYtDlp(args: string[], timeoutMs: number): Promise<string> {
 }
 
 const IMAGE_STDERR_RE =
-  /there is no video in this post|not a video|this post contains images?|no video formats found/i;
+  /there is no video in this post|not a video|this post contains images?|no video formats found|cannot parse data/i;
 const IMAGE_EXTS = new Set([
   "jpg",
   "jpeg",
@@ -173,6 +183,9 @@ export async function fetchInfo(
   if (config.youTubeCookies && platform === "youtube") {
     args.push("--cookies", config.youTubeCookies);
   }
+  if (config.facebookCookies && platform === "facebook") {
+    args.push("--cookies", config.facebookCookies);
+  }
   args.push(url);
   console.log("[yt-dlp] fetchInfo:", url);
 
@@ -180,10 +193,18 @@ export async function fetchInfo(
   try {
     raw = await runYtDlp(args, INFO_TIMEOUT_MS);
   } catch (err) {
-    if (err instanceof ExtractError && err.message === "image_post") {
+    if (err instanceof ExtractError && (err.message === "image_post" || (platform === "facebook" && err.code === "private"))) {
       console.log(
-        "[yt-dlp] konten gambar terdeteksi, coba fetch image info...",
+        "[yt-dlp] konten gambar atau fb post terdeteksi, coba fallback scraper...",
       );
+      if (platform === "facebook") {
+        try {
+          const fbInfo = await fetchFacebookPhotoInfo(url);
+          if (fbInfo) return fbInfo;
+        } catch {
+          /* lanjutkan fallback */
+        }
+      }
       if (platform === "instagram") {
         try {
           const igInfo = await fetchInstagramEmbedInfo(url);

@@ -44,6 +44,7 @@ export const config = {
   queueTimeoutSec: num("QUEUE_TIMEOUT_SEC", 900),
   previewTtlMin: num("PREVIEW_TTL_MIN", 30),
   youTubeCookies: process.env.YOUTUBE_COOKIES_TXT ?? "",
+  facebookCookies: process.env.FACEBOOK_COOKIES_TXT ?? "",
   bin: {
     ytDlp: process.env.YTDLP_PATH ?? "yt-dlp",
     ffmpeg: resolveFfmpeg(),
