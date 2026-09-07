@@ -1,12 +1,14 @@
 # Snap Save Kit Bot
 
-Bot Telegram pengunduh video, audio, dan album foto multi-platform.
+Bot Telegram pengunduh video, audio, album foto, dan lagu multi-platform.
 
-**Platform didukung:** YouTube, TikTok, Instagram, Facebook, X (Twitter), Threads
+**Platform didukung:** YouTube, TikTok, Instagram, Facebook, X (Twitter), Threads, Spotify
 
 **Fitur:**
 - Unduh video MP4 (pilihan resolusi hingga 1080p).
 - Ekstrak audio MP3.
+- Unduh lagu dari Spotify (pencarian audio berkualitas tinggi via YouTube Music).
+- Penyematan tag metadata audio ID3v2 otomatis: cover art (APIC), judul, artis, nama album, dan lirik lagu (USLT via LrcLib).
 - Unduh post gambar/foto tunggal maupun album slide (TikTok photo slide, Instagram carousel, Facebook photos).
 - Pilihan unduh satu foto tertentu atau semua slide sekaligus (media group/album).
 - Fallback scraper mandiri untuk post foto Facebook dan Instagram yang gagal diproses oleh yt-dlp.
@@ -136,6 +138,7 @@ src/
     facebook.ts          — handler Facebook video & fallback photo scraper
     threads.ts           — konfigurasi Threads
     x.ts                 — konfigurasi X / Twitter
+    spotify.ts           — handler lagu Spotify, ekstraksi metadata album & lirik
   services/
     downloader.ts        — download media via yt-dlp & download gambar
     extractor.ts         — ekstraksi metadata via yt-dlp -J + image fallback
@@ -157,6 +160,9 @@ npx tsx scripts/test-detect.ts
 
 # Tes download single foto vs semua foto album
 npx tsx scripts/test-single-and-all.ts
+
+# Tes download lagu Spotify (metadata, tag ID3, cover, lirik)
+npx tsx scripts/test-spotify.ts
 
 # Tes metadata video (butuh internet)
 npx tsx scripts/test-pipeline.ts "https://youtu.be/dQw4w9WgXcQ"
