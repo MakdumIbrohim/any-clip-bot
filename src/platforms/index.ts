@@ -11,6 +11,10 @@ export * from "./types.js";
 
 export type Platform = PlatformId;
 
+export function getPlatformConfig(id: PlatformId): PlatformConfig | undefined {
+  return platformMap.get(id);
+}
+
 export const PLATFORMS: PlatformConfig[] = [
   youtubePlatform,
   tiktokPlatform,
@@ -30,10 +34,6 @@ export const PLATFORM_LABEL: Record<Platform, string> = Object.fromEntries(
 const platformMap = new Map<PlatformId, PlatformConfig>(
   PLATFORMS.map((p) => [p.id, p])
 );
-
-export function getPlatformConfig(id: PlatformId): PlatformConfig | undefined {
-  return platformMap.get(id);
-}
 
 const HOST_MAP: Array<[string, Platform]> = [];
 for (const p of PLATFORMS) {

@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { config } from "../config.js";
-import { getPlatformConfig, type Platform } from "../platforms/index.js";
+import type { Platform } from "../platforms/index.js";
+import { getPlatformConfig } from "../platforms/index.js";
 import { fetchInstagramEmbedInfo } from "../platforms/instagram.js";
 import { fetchFacebookPhotoInfo } from "../platforms/facebook.js";
 
