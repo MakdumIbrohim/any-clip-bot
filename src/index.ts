@@ -41,7 +41,7 @@ process.once("SIGINT", () => {
   setTimeout(() => process.exit(0), 500);
 });
 
-console.log("[init] AnyClip Bot jalan (polling).");
+console.log("[init] Snap Save Kit Bot jalan (polling).");
 await bot.start({
   onStart: (me) => console.log(`[init] @${me.username} siap menerima link.`),
 });

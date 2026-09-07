@@ -95,7 +95,7 @@ function checkQuota(userId: number): string | null {
 
 bot.command(["start", "help"], async (ctx) => {
   const text = [
-    "🎬 <b>AnyClip Bot</b>",
+    "🎬 <b>Snap Save Kit Bot</b>",
     "",
     "Kirim link video dari <b>YouTube, TikTok, Instagram, Facebook, X, atau Threads</b> — bot akan menampilkan pratinjau lalu kamu pilih format:",
     "• 🎥 Video MP4 (resolusi sesuai sumber)",
