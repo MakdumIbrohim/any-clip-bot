@@ -126,6 +126,54 @@ export async function runDownload(
   report(null, "Mengunduh…");
   const started = Date.now();
 
+  // Penanganan khusus untuk multi-image / slide album
+  if (job.kind.type === "image" && job.info.images && job.info.images.length > 1) {
+    const urls = job.info.images;
+    const downloadedPaths: string[] = [];
+    let totalBytes = 0;
+
+    for (let i = 0; i < urls.length; i++) {
+      if (job.cancelled) return { ok: false, code: "cancelled" };
+      report(Math.round(((i + 1) / urls.length) * 100), `Mengunduh foto ${i + 1}/${urls.length}…`);
+
+      const imgUrl = urls[i];
+      const ext = imgUrl.match(/\.(jpe?g|png|webp)/i)?.[1]?.toLowerCase() || "jpg";
+      const filePath = path.join(dir, `slide_${String(i + 1).padStart(3, "0")}.${ext}`);
+
+      try {
+        const res = await fetch(imgUrl, {
+          headers: { "User-Agent": "Mozilla/5.0" },
+          signal: AbortSignal.timeout(20_000),
+        });
+        if (!res.ok) continue;
+        const arrayBuf = await res.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        fs.writeFileSync(filePath, buf);
+        totalBytes += buf.length;
+        downloadedPaths.push(filePath);
+      } catch (err) {
+        console.error(`[downloader] gagal mengunduh slide ${i + 1}:`, err);
+      }
+    }
+
+    if (downloadedPaths.length === 0) {
+      throw new Error("Gagal mengunduh gambar slide.");
+    }
+
+    report(null, "Mengirim…");
+    if (totalBytes > config.maxUploadMb * 1024 * 1024) {
+      return { ok: false, code: "too_big", size: totalBytes, path: downloadedPaths[0] };
+    }
+
+    return {
+      ok: true,
+      path: downloadedPaths[0],
+      paths: downloadedPaths,
+      size: totalBytes,
+      ms: Date.now() - started,
+    };
+  }
+
   const code = await new Promise<number>((resolve, reject) => {
     const child = spawn(config.bin.ytDlp, buildArgs(job, dir), { stdio: ["ignore", "pipe", "pipe"] });
     job.child = child;

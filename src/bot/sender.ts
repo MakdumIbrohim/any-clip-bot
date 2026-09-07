@@ -14,12 +14,28 @@ export async function uploadAndSend(
   chatId: number,
   job: DownloadJob,
   filePath: string,
-  size: number
+  size: number,
+  allPaths?: string[]
 ): Promise<void> {
   const isAudio = job.kind.type === "audio";
   const isImage = job.kind.type === "image";
   const emoji = isAudio ? "🎵" : isImage ? "📷" : "🎬";
   const caption = `${emoji} ${job.info.title.slice(0, 100)}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
+
+  // Multi-image album
+  if (isImage && allPaths && allPaths.length > 1) {
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < allPaths.length; i += CHUNK_SIZE) {
+      const chunk = allPaths.slice(i, i + CHUNK_SIZE);
+      const media = chunk.map((p, idx) => ({
+        type: "photo" as const,
+        media: new InputFile(p),
+        caption: i === 0 && idx === 0 ? caption : undefined,
+      }));
+      await bot.api.sendMediaGroup(chatId, media);
+    }
+    return;
+  }
 
   const videoName = `${sanitize(job.info.title)}.mp4`;
   const audioName = `${sanitize(job.info.title)}.mp3`;
@@ -73,7 +89,7 @@ export async function handleJobResult(
 
   if (result.ok) {
     try {
-      await uploadAndSend(bot, chatId, job, result.path, result.size);
+      await uploadAndSend(bot, chatId, job, result.path, result.size, result.paths);
       await (statusId
         ? bot.api.deleteMessage(chatId, statusId).catch(() => {})
         : Promise.resolve());

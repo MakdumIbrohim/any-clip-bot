@@ -8,7 +8,7 @@ import type { VideoInfo } from "./extractor.js";
 export type JobKind = { type: "video"; height: number } | { type: "audio" } | { type: "image" };
 
 export type JobResult =
-  | { ok: true; path: string; size: number; ms: number }
+  | { ok: true; path: string; paths?: string[]; size: number; ms: number }
   | { ok: false; code: "too_big"; size: number; path: string }
   | { ok: false; code: "error"; message: string }
   | { ok: false; code: "cancelled" };

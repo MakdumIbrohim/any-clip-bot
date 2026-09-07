@@ -24,12 +24,14 @@ export function buildImagePreview(
     expires: Date.now() + config.previewTtlMin * 60_000,
   });
 
-  const keyboard = new InlineKeyboard().text("📷 Unduh Gambar", `dl:${token}:i`);
+  const count = info.images?.length ?? 1;
+  const label = count > 1 ? `📷 Unduh Semua Slide (${count} Foto)` : "📷 Unduh Gambar";
+  const keyboard = new InlineKeyboard().text(label, `dl:${token}:i`);
   const caption = [
     `📌 <b>${esc(info.title.slice(0, 150))}</b>`,
     `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
     "",
-    "Konten ini berupa gambar/foto.",
+    count > 1 ? `Konten ini berupa album foto (${count} slide gambar).` : "Konten ini berupa gambar/foto.",
   ].join("\n");
 
   return { caption, keyboard };
