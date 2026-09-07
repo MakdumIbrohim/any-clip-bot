@@ -1,5 +1,6 @@
 import { facebookPlatform } from "./facebook.js";
 import { instagramPlatform } from "./instagram.js";
+import { spotifyPlatform } from "./spotify.js";
 import { threadsPlatform } from "./threads.js";
 import { tiktokPlatform } from "./tiktok.js";
 import type { PlatformConfig, PlatformId } from "./types.js";
@@ -17,6 +18,7 @@ export const PLATFORMS: PlatformConfig[] = [
   facebookPlatform,
   xPlatform,
   threadsPlatform,
+  spotifyPlatform,
 ];
 
 export const SUPPORTED_PLATFORMS: Platform[] = PLATFORMS.map((p) => p.id);

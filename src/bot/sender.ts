@@ -43,7 +43,21 @@ export async function uploadAndSend(
   const audioName = `${sanitize(job.info.title)}.mp3`;
   const senders = isAudio
     ? [
-        () => bot.api.sendAudio(chatId, new InputFile(filePath, audioName), { caption }),
+        () =>
+          bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
+            caption,
+            title: job.info.title.slice(0, 100),
+            performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
+            duration: job.info.duration || undefined,
+            thumbnail: job.info.thumbnail ? new InputFile({ url: job.info.thumbnail }) : undefined,
+          }),
+        () =>
+          bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
+            caption,
+            title: job.info.title.slice(0, 100),
+            performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
+            duration: job.info.duration || undefined,
+          }),
         () => bot.api.sendDocument(chatId, new InputFile(filePath, audioName), { caption }),
       ]
     : isImage

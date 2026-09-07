@@ -49,7 +49,7 @@ async function sendPreview(
   chatId: number,
   userId: number,
   info: VideoInfo,
-  platform: Platform
+  platform: Platform,
 ) {
   if (info.isImage) {
     const { caption, keyboard } = buildImagePreview(info, platform, userId);
@@ -76,7 +76,10 @@ async function sendPreview(
         });
         return;
       } catch (err) {
-        console.error("[bot] Gagal mengirim media group preview, fallback ke single thumbnail:", err);
+        console.error(
+          "[bot] Gagal mengirim media group preview, fallback ke single thumbnail:",
+          err,
+        );
       }
     }
 
@@ -91,7 +94,7 @@ async function sendPreview(
           bot.api.sendMessage(chatId, caption, {
             parse_mode: "HTML",
             reply_markup: keyboard,
-          })
+          }),
         );
     } else {
       await bot.api.sendMessage(chatId, caption, {
@@ -107,7 +110,7 @@ async function sendPreview(
   if (!hasVideo && !hasAudio) {
     await bot.api.sendMessage(
       chatId,
-      "❌ Konten ini tidak memiliki format video atau audio yang bisa diunduh."
+      "❌ Konten ini tidak memiliki format video atau audio yang bisa diunduh.",
     );
     return;
   }
@@ -139,9 +142,10 @@ bot.command(["start", "help"], async (ctx) => {
   const text = [
     "🎬 <b>Snap Save Kit Bot</b>",
     "",
-    "Kirim link video dari <b>YouTube, TikTok, Instagram, Facebook, X, atau Threads</b> — bot akan menampilkan pratinjau lalu kamu pilih format:",
+    "Kirim link dari <b>YouTube, TikTok, Instagram, Facebook, X, Threads, atau Spotify</b> — bot akan menampilkan pratinjau lalu kamu pilih format:",
     "• 🎥 Video MP4 (resolusi sesuai sumber)",
-    "• 🎵 Audio MP3",
+    "• 🎵 Audio MP3 / Lagu",
+    "• 📷 Foto / Album Slide",
     "",
     `Kuota harian: <b>${effectiveDailyLimit()}</b> unduhan/hari.`,
     "",
@@ -161,7 +165,7 @@ bot.command("status", async (ctx) => {
   const limit = effectiveDailyLimit();
   const used = quotaUsed(userId);
   await ctx.reply(
-    `Kuota hari ini: ${used}/${limit}\nPosisi antrian saat ini: ${queueDepth()} job.\nMode akses: ${currentAccessMode()}.`
+    `Kuota hari ini: ${used}/${limit}\nPosisi antrian saat ini: ${queueDepth()} job.\nMode akses: ${currentAccessMode()}.`,
   );
 });
 
@@ -174,7 +178,9 @@ bot.command("cancel", async (ctx) => {
     cancelJob(job);
     cancelled = true;
   }
-  await ctx.reply(cancelled ? "Unduhan dibatalkan." : "Tidak ada unduhan aktif.");
+  await ctx.reply(
+    cancelled ? "Unduhan dibatalkan." : "Tidak ada unduhan aktif.",
+  );
 });
 
 // Message handler
@@ -185,13 +191,20 @@ bot.on("message:text", async (ctx) => {
   if (accessErr) return ctx.reply(accessErr);
 
   const url = extractUrl(text);
-  if (!url) return ctx.reply("Kirim tautan video, contoh: https://youtu.be/xxxx");
+  if (!url)
+    return ctx.reply("Kirim tautan video, contoh: https://youtu.be/xxxx");
 
   const platform = detectPlatform(url);
   if (!platform) {
-    logEvent(ctx.from.id, null, null, false, `unsupported url: ${url.slice(0, 120)}`);
+    logEvent(
+      ctx.from.id,
+      null,
+      null,
+      false,
+      `unsupported url: ${url.slice(0, 120)}`,
+    );
     return ctx.reply(
-      "Platform link ini belum didukung. Yang didukung: YouTube, TikTok, Instagram, Facebook, X, Threads."
+      "Platform link ini belum didukung. Yang didukung: YouTube, TikTok, Instagram, Facebook, X, Threads.",
     );
   }
 
@@ -199,7 +212,7 @@ bot.on("message:text", async (ctx) => {
   if (quotaErr) return ctx.reply(quotaErr);
 
   const ack = await ctx.reply(
-    `🔎 Link ${PLATFORM_LABEL[platform]} terdeteksi. Mengambil info video…`
+    `🔎 Link ${PLATFORM_LABEL[platform]} terdeteksi. Mengambil info video…`,
   );
 
   try {
@@ -256,7 +269,10 @@ bot.on("callback_query:data", async (ctx) => {
     });
   }
 
-  let kindObj: { type: "video"; height: number } | { type: "audio" } | { type: "image"; index?: number };
+  let kindObj:
+    | { type: "video"; height: number }
+    | { type: "audio" }
+    | { type: "image"; index?: number };
 
   if (kindFull === "a") {
     kindObj = { type: "audio" };
@@ -287,7 +303,9 @@ bot.on("callback_query:data", async (ctx) => {
 
   const status = await bot.api.sendMessage(
     chatId,
-    queueDepth() > 0 ? `⏳ Dalam antrian (${queueDepth()} job)…` : "⏳ Mempersiapkan unduhan…"
+    queueDepth() > 0
+      ? `⏳ Dalam antrian (${queueDepth()} job)…`
+      : "⏳ Mempersiapkan unduhan…",
   );
 
   const key = jobKey(chatId, fromId);

@@ -26,6 +26,8 @@ export type VideoInfo = {
   duration: number;
   thumbnail: string | null;
   uploader: string | null;
+  album?: string | null;
+  lyrics?: string | null;
   webpageUrl: string;
   platform: Platform;
   formats: VideoFormat[];

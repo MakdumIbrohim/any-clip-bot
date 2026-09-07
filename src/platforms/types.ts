@@ -7,7 +7,8 @@ export type PlatformId =
   | "instagram"
   | "facebook"
   | "x"
-  | "threads";
+  | "threads"
+  | "spotify";
 
 export interface PlatformConfig {
   id: PlatformId;

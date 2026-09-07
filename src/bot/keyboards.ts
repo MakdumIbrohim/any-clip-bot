@@ -14,7 +14,7 @@ import { esc, newToken, pending } from "./utils.js";
 export function buildImagePreview(
   info: VideoInfo,
   platform: Platform,
-  userId: number
+  userId: number,
 ): { caption: string; keyboard: InlineKeyboard } {
   const token = newToken();
   pending.set(token, {
@@ -28,7 +28,9 @@ export function buildImagePreview(
   const keyboard = new InlineKeyboard();
 
   if (count > 1) {
-    keyboard.text(`📷 Unduh Semua Slide (${count} Foto)`, `dl:${token}:iall`).row();
+    keyboard
+      .text(`📷 Unduh Semua Slide (${count} Foto)`, `dl:${token}:iall`)
+      .row();
 
     // Baris tombol angka slide (maksimal 5 kolom per baris)
     const MAX_BUTTONS = Math.min(count, 30);
@@ -56,7 +58,7 @@ export function buildImagePreview(
 export function buildVideoPreview(
   info: VideoInfo,
   platform: Platform,
-  userId: number
+  userId: number,
 ): { caption: string; keyboard: InlineKeyboard } {
   const token = newToken();
   pending.set(token, {
@@ -70,27 +72,39 @@ export function buildVideoPreview(
   const lines: string[] = [];
   lines.push(`📌 <b>${esc(info.title.slice(0, 150))}</b>`);
   lines.push(
-    `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`
+    `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
   );
-  lines.push(`Durasi: ${info.isLive ? "🔴 LIVE" : formatDuration(info.duration)}`);
+  lines.push(
+    `Durasi: ${info.isLive ? "🔴 LIVE" : formatDuration(info.duration)}`,
+  );
   lines.push("");
-  lines.push("Pilih format:");
 
   const heights = availableHeights(info);
-  for (const h of heights.slice(0, 5)) {
-    const size = estimateVideoSize(info, h);
-    const label = `🎥 MP4 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`;
-    keyboard.text(
-      label.length > 56 ? `🎥 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}` : label,
-      `dl:${token}:v${h}`
-    ).row();
+  if (heights.length > 0) {
+    lines.push("Pilih format:");
+    for (const h of heights.slice(0, 5)) {
+      const size = estimateVideoSize(info, h);
+      const label = `🎥 MP4 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`;
+      keyboard
+        .text(
+          label.length > 56
+            ? `🎥 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`
+            : label,
+          `dl:${token}:v${h}`,
+        )
+        .row();
+    }
+  } else {
+    lines.push("Unduh lagu:");
   }
 
   const audioSize = estimateAudioSize(info);
-  keyboard.text(
-    `🎵 MP3 Audio${audioSize ? ` • ~${formatBytes(audioSize)}` : ""}`,
-    `dl:${token}:a`
-  ).row();
+  keyboard
+    .text(
+      `🎵 Unduh MP3 Audio${audioSize ? ` • ~${formatBytes(audioSize)}` : ""}`,
+      `dl:${token}:a`,
+    )
+    .row();
 
   return { caption: lines.join("\n"), keyboard };
 }

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import NodeID3 from "node-id3";
 import { config } from "../config.js";
 import { getPlatformConfig } from "../platforms/index.js";
 import type { VideoInfo } from "./extractor.js";
@@ -115,7 +116,8 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
       "mp4"
     );
   }
-  args.push(job.info.webpageUrl || job.info.id);
+  const source = job.info.formats[0]?.source || job.info.webpageUrl || job.info.id;
+  args.push(source);
   return args;
 }
 
@@ -229,6 +231,45 @@ export async function runDownload(
 
   const file = findOutputFile(dir);
   if (!file) throw new Error("File hasil unduhan tidak ditemukan.");
+
+  // Inject cover art, album, artist, title, lyrics jika platform spotify / audio dengan metadata
+  if (job.kind.type === "audio" && (job.info.thumbnail || job.info.album || job.info.lyrics)) {
+    try {
+      report(null, "Menyematkan cover & metadata…");
+      const tags: NodeID3.Tags = {};
+      if (job.info.title) tags.title = job.info.title;
+      if (job.info.uploader) tags.artist = job.info.uploader;
+      if (job.info.album) tags.album = job.info.album;
+
+      if (job.info.lyrics) {
+        tags.unsynchronisedLyrics = {
+          language: "eng",
+          text: job.info.lyrics,
+        };
+      }
+
+      if (job.info.thumbnail) {
+        try {
+          const cRes = await fetch(job.info.thumbnail, { signal: AbortSignal.timeout(10_000) });
+          if (cRes.ok) {
+            const buf = Buffer.from(await cRes.arrayBuffer());
+            tags.image = {
+              mime: "image/jpeg",
+              type: { id: 3, name: "front cover" },
+              description: "Cover",
+              imageBuffer: buf,
+            };
+          }
+        } catch {
+          /* ignore cover fetch error */
+        }
+      }
+
+      NodeID3.write(tags, file);
+    } catch (err) {
+      console.error("[downloader] Gagal embed ID3 cover & lyrics:", err);
+    }
+  }
 
   report(null, "Mengirim…");
   const size = fs.statSync(file).size;
