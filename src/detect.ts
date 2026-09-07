@@ -60,7 +60,7 @@ export function hasVideoPath(url: string, platform: Platform): boolean {
     const { pathname } = new URL(url);
     switch (platform) {
       case "youtube":
-        return /\/(watch|shorts|live|embed|v)\//i.test(pathname) ||
+        return /\/(watch|shorts|live|embed|v)(\/|\?|$)/i.test(pathname) ||
           /youtu\.be\/[\w-]+/i.test(url);
       case "tiktok":
         return /\/(video|photo)\/\d+/i.test(pathname) || /^(\/)?(vm|vt)\./i.test(url);

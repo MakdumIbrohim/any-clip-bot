@@ -86,6 +86,9 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
     "-o",
     out,
   ];
+  if (path.isAbsolute(config.bin.ffmpeg)) {
+    args.push("--ffmpeg-location", config.bin.ffmpeg);
+  }
   if (config.youTubeCookies && job.platform === "youtube") {
     args.push("--cookies", config.youTubeCookies);
   }

@@ -1,6 +1,18 @@
 import "dotenv/config";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+function resolveFfmpeg(): string {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  try {
+    const p = createRequire(import.meta.url)("ffmpeg-static");
+    if (typeof p === "string") return p;
+  } catch {
+    /* fallthrough */
+  }
+  return "ffmpeg";
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -14,16 +26,16 @@ function ids(name: string): Set<number> {
     (process.env[name] ?? "")
       .split(",")
       .map((s) => Number(s.trim()))
-      .filter(Number.isFinite)
+      .filter(Number.isFinite),
   );
 }
 
 export const config = {
   botToken: process.env.BOT_TOKEN ?? "",
   adminIds: ids("ADMIN_IDS"),
-  accessMode: (process.env.ACCESS_MODE === "whitelist" ? "whitelist" : "public") as
-    | "public"
-    | "whitelist",
+  accessMode: (process.env.ACCESS_MODE === "whitelist"
+    ? "whitelist"
+    : "public") as "public" | "whitelist",
   whitelistIds: ids("WHITELIST_IDS"),
   dailyLimit: num("DAILY_LIMIT", 10),
   maxResolution: num("MAX_RESOLUTION", 1080),
@@ -34,7 +46,7 @@ export const config = {
   youTubeCookies: process.env.YOUTUBE_COOKIES_TXT ?? "",
   bin: {
     ytDlp: process.env.YTDLP_PATH ?? "yt-dlp",
-    ffmpeg: process.env.FFMPEG_PATH ?? "ffmpeg",
+    ffmpeg: resolveFfmpeg(),
   },
   dbPath: process.env.DB_PATH ?? path.join(root, "data", "anyclip.db"),
   tmpDir: process.env.TMP_DIR ?? path.join(root, "data", "tmp"),
@@ -42,7 +54,9 @@ export const config = {
 
 export function assertConfig(): void {
   if (!config.botToken) {
-    console.error("BOT_TOKEN belum diisi. Salin .env.example ke .env lalu isi token dari @BotFather.");
+    console.error(
+      "BOT_TOKEN belum diisi. Salin .env.example ke .env lalu isi token dari @BotFather.",
+    );
     process.exit(1);
   }
 }
