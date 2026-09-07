@@ -1,40 +1,19 @@
-export const SUPPORTED_PLATFORMS = [
-  "youtube",
-  "tiktok",
-  "instagram",
-  "facebook",
-  "x",
-  "threads",
-] as const;
+import { PLATFORMS, type PlatformConfig, type PlatformId } from "./platforms/index.js";
 
-export type Platform = (typeof SUPPORTED_PLATFORMS)[number];
+export const SUPPORTED_PLATFORMS = PLATFORMS.map((p) => p.id);
 
-export const PLATFORM_LABEL: Record<Platform, string> = {
-  youtube: "YouTube",
-  tiktok: "TikTok",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  x: "X (Twitter)",
-  threads: "Threads",
-};
+export type Platform = PlatformId;
 
-const HOST_MAP: Array<[string, Platform]> = [
-  ["youtube.com", "youtube"],
-  ["youtu.be", "youtube"],
-  ["yt.be", "youtube"],
-  ["tiktok.com", "tiktok"],
-  ["vm.tiktok.com", "tiktok"],
-  ["vt.tiktok.com", "tiktok"],
-  ["instagram.com", "instagram"],
-  ["instagr.am", "instagram"],
-  ["facebook.com", "facebook"],
-  ["fb.com", "facebook"],
-  ["fb.watch", "facebook"],
-  ["x.com", "x"],
-  ["twitter.com", "x"],
-  ["threads.net", "threads"],
-  ["threads.com", "threads"],
-];
+export const PLATFORM_LABEL: Record<Platform, string> = Object.fromEntries(
+  PLATFORMS.map((p) => [p.id, p.name])
+) as Record<Platform, string>;
+
+const HOST_MAP: Array<[string, Platform]> = [];
+for (const p of PLATFORMS) {
+  for (const domain of p.domains) {
+    HOST_MAP.push([domain, p.id]);
+  }
+}
 
 const URL_RE = /\bhttps?:\/\/\S+/i;
 
@@ -55,26 +34,17 @@ export function detectPlatform(url: string): Platform | null {
   return null;
 }
 
+const configMap = new Map<Platform, PlatformConfig>(
+  PLATFORMS.map((p) => [p.id, p])
+);
+
 export function hasVideoPath(url: string, platform: Platform): boolean {
   try {
     const { pathname } = new URL(url);
-    switch (platform) {
-      case "youtube":
-        return /\/(watch|shorts|live|embed|v)(\/|\?|$)/i.test(pathname) ||
-          /youtu\.be\/[\w-]+/i.test(url);
-      case "tiktok":
-        return /\/(video|photo)\/\d+/i.test(pathname) || /^(\/)?(vm|vt)\./i.test(url);
-      case "instagram":
-        return /\/(p|reel|reels|tv)\/[\w-]+/i.test(pathname);
-      case "facebook":
-        return /\/(video|watch|reel|stories)\/|\/\d+\/(\d+)\/?|fb\.watch/i.test(pathname);
-      case "x":
-        return /\/status\/\d+/i.test(pathname);
-      case "threads":
-        return /\/(post|thread|t)\/[\w-]+/i.test(pathname);
-    }
+    const p = configMap.get(platform);
+    if (!p) return false;
+    return p.hasVideoPath(url, pathname);
   } catch {
     return false;
   }
-  return false;
 }

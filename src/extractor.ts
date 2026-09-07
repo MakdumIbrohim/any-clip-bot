@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { config } from "./config.js";
 import type { Platform } from "./detect.js";
-import { fetchThreadsInfo } from "./threads.js";
+import { getPlatformConfig } from "./platforms/index.js";
 
 const pexecFile = promisify(execFile);
 
@@ -155,8 +155,9 @@ export async function fetchInfo(
   url: string,
   platform: Platform,
 ): Promise<VideoInfo> {
-  if (platform === "threads") {
-    return await fetchThreadsInfo(url);
+  const handler = getPlatformConfig(platform);
+  if (handler?.fetchInfo) {
+    return await handler.fetchInfo(url);
   }
 
   const args = ["-J", "--no-playlist", "--no-warnings", "--no-progress"];
@@ -254,9 +255,6 @@ export async function fetchInfo(
     "avif",
     "heic",
   ]);
-  const hasMedia = formats.some(
-    (f) => f.vcodec !== "none" || f.acodec !== "none",
-  );
   const allImages =
     (data.formats ?? []).length > 0 &&
     (data.formats ?? []).every((f: any) =>
@@ -277,23 +275,17 @@ export async function fetchInfo(
       isImage: true,
     };
   }
-  if (!hasMedia) {
-    throw new ExtractError(
-      "Konten ini tidak memiliki format video atau audio yang bisa diunduh.",
-      "unsupported",
-    );
-  }
 
   return {
     id: String(data.id ?? ""),
     title: data.title ?? "Tanpa judul",
-    duration: data.duration ?? 0,
+    duration: Math.round(Number(data.duration ?? 0)),
     thumbnail: data.thumbnail ?? null,
-    uploader: data.uploader ?? data.channel ?? data.artist ?? null,
+    uploader: data.uploader ?? data.channel ?? null,
     webpageUrl: data.webpage_url ?? url,
     platform,
     formats,
-    isLive: !!data.is_live,
+    isLive: Boolean(data.is_live),
     availability: data.availability ?? null,
     isImage: false,
   };

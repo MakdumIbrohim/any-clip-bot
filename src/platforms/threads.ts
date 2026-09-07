@@ -1,5 +1,9 @@
-import type { VideoFormat, VideoInfo } from "./extractor.js";
-import { ExtractError } from "./extractor.js";
+import path from "node:path";
+import { config } from "../config.js";
+import type { VideoFormat, VideoInfo } from "../extractor.js";
+import { ExtractError } from "../extractor.js";
+import type { DownloadJob } from "../queue.js";
+import type { PlatformConfig } from "./types.js";
 
 function decodeHtmlEntities(text: string): string {
   return text
@@ -12,7 +16,10 @@ function decodeHtmlEntities(text: string): string {
 }
 
 function extractMeta(html: string, property: string): string | null {
-  const re = new RegExp(`<meta[^>]+(?:property|name)=[\\x22\\x27]${property}[\\x22\\x27][^>]+content=[\\x22\\x27]([^\\x22\\x27]+)[\\x22\\x27]`, "i");
+  const re = new RegExp(
+    `<meta[^>]+(?:property|name)=[\\x22\\x27]${property}[\\x22\\x27][^>]+content=[\\x22\\x27]([^\\x22\\x27]+)[\\x22\\x27]`,
+    "i"
+  );
   const match = html.match(re);
   return match ? decodeHtmlEntities(match[1]) : null;
 }
@@ -50,7 +57,9 @@ export async function fetchThreadsInfo(url: string): Promise<VideoInfo> {
   }
 
   // Extract author
-  const authorMatch = pageHtml.match(/class=[\x22\x27]AuthorIdentity[\x22\x27].*?class=[\x22\x27]HeaderLink[\x22\x27]><span>(.*?)<\/span>/s);
+  const authorMatch = pageHtml.match(
+    /class=[\x22\x27]AuthorIdentity[\x22\x27].*?class=[\x22\x27]HeaderLink[\x22\x27]><span>(.*?)<\/span>/s
+  );
   let uploader = authorMatch ? decodeHtmlEntities(authorMatch[1].trim()) : null;
   if (!uploader) {
     const usernameFromUrl = parts.find((p) => p.startsWith("@"));
@@ -61,7 +70,10 @@ export async function fetchThreadsInfo(url: string): Promise<VideoInfo> {
   const textMatch = pageHtml.match(/class=[\x22\x27]BodyTextContainer[\x22\x27]><span>(.*?)<\/span>/s);
   let title = textMatch ? decodeHtmlEntities(textMatch[1].trim()) : "";
   if (!title) {
-    title = extractMeta(pageHtml, "og:description") ?? extractMeta(pageHtml, "description") ?? "Post Threads";
+    title =
+      extractMeta(pageHtml, "og:description") ??
+      extractMeta(pageHtml, "description") ??
+      "Post Threads";
   }
 
   // Extract video source
@@ -69,13 +81,19 @@ export async function fetchThreadsInfo(url: string): Promise<VideoInfo> {
   const videoUrl = videoMatch ? decodeHtmlEntities(videoMatch[1]) : null;
 
   // Extract image source
-  const imgMatches = [...pageHtml.matchAll(/class=[\x22\x27]SingleInnerMediaContainer[^\x22\x27]*[\x22\x27][^>]*>.*?<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]/gs)];
+  const imgMatches = [
+    ...pageHtml.matchAll(
+      /class=[\x22\x27]SingleInnerMediaContainer[^\x22\x27]*[\x22\x27][^>]*>.*?<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]/gs
+    ),
+  ];
   const imageUrl = imgMatches.length > 0 ? decodeHtmlEntities(imgMatches[0][1]) : null;
 
   // Thumbnail
   let thumbnail = imageUrl;
   if (!thumbnail) {
-    const avatarMatch = pageHtml.match(/class=[\x22\x27]AvatarContainer[\x22\x27].*?<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]/s);
+    const avatarMatch = pageHtml.match(
+      /class=[\x22\x27]AvatarContainer[\x22\x27].*?<img[^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]/s
+    );
     if (avatarMatch) {
       thumbnail = decodeHtmlEntities(avatarMatch[1]);
     }
@@ -155,3 +173,34 @@ export async function fetchThreadsInfo(url: string): Promise<VideoInfo> {
 
   throw new ExtractError("Tidak ditemukan media video atau gambar pada post Threads ini.", "unavailable");
 }
+
+export const threadsPlatform: PlatformConfig = {
+  id: "threads",
+  name: "Threads",
+  domains: ["threads.net", "threads.com"],
+  hasVideoPath: (_url, pathname) => /\/(post|thread|t)\/[\w-]+/i.test(pathname),
+  fetchInfo: fetchThreadsInfo,
+  buildDownloadArgs: (job: DownloadJob, dir: string) => {
+    const out = path.join(dir, "%(id)s.%(ext)s");
+    const args = [
+      "--no-playlist",
+      "--no-warnings",
+      "--newline",
+      "--progress",
+      "--no-part",
+      "--restrict-filenames",
+      "-o",
+      out,
+    ];
+    if (path.isAbsolute(config.bin.ffmpeg)) {
+      args.push("--ffmpeg-location", config.bin.ffmpeg);
+    }
+    if (job.kind.type === "audio") {
+      args.push("-x", "--audio-format", "mp3", "--audio-quality", "5");
+    } else if (job.kind.type === "video") {
+      args.push("--merge-output-format", "mp4");
+    }
+    args.push(job.info.webpageUrl || job.info.id);
+    return args;
+  },
+};

@@ -3,12 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
 import type { VideoInfo } from "./extractor.js";
+import { getPlatformConfig } from "./platforms/index.js";
 import type { DownloadJob, JobResult } from "./queue.js";
 
 export function availableHeights(info: VideoInfo): number[] {
   const set = new Set<number>();
   for (const f of info.formats) {
-    if (f.vcodec !== "none" && f.height && f.height <= config.maxResolution) set.add(f.height);
+    if (f.vcodec !== "none" && f.height && f.height <= config.maxResolution)
+      set.add(f.height);
   }
   return [...set].sort((a, b) => b - a);
 }
@@ -17,18 +19,25 @@ function bytesForBitrate(kbps: number, duration: number): number {
   return Math.round((kbps * 1000 * duration) / 8);
 }
 
-export function estimateVideoSize(info: VideoInfo, height: number): number | null {
+export function estimateVideoSize(
+  info: VideoInfo,
+  height: number,
+): number | null {
   if (!info.duration) return null;
   const video = info.formats
     .filter((f) => f.vcodec !== "none" && f.height === height)
     .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
   if (!video) return null;
-  let bytes = video.filesize ?? (video.tbr ? bytesForBitrate(video.tbr, info.duration) : 0);
+  let bytes =
+    video.filesize ??
+    (video.tbr ? bytesForBitrate(video.tbr, info.duration) : 0);
   if (video.acodec === "none") {
     const audio = info.formats
       .filter((f) => f.vcodec === "none" && f.acodec !== "none")
       .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
-    bytes += audio?.filesize ?? (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : 128_000);
+    bytes +=
+      audio?.filesize ??
+      (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : 128_000);
   }
   return bytes > 0 ? bytes : null;
 }
@@ -38,7 +47,9 @@ export function estimateAudioSize(info: VideoInfo): number | null {
   const audio = info.formats
     .filter((f) => f.vcodec === "none" && f.acodec !== "none")
     .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
-  const fromSource = audio?.filesize ?? (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : null);
+  const fromSource =
+    audio?.filesize ??
+    (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : null);
   const mp3Default = bytesForBitrate(160, info.duration);
   return fromSource ? Math.min(fromSource, mp3Default) : mp3Default;
 }
@@ -54,14 +65,30 @@ export function formatDuration(sec: number): string {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.floor(sec % 60);
-  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+  return h
+    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function jobOutputDir(job: DownloadJob): string {
   return path.join(config.tmpDir, job.id);
 }
 
-const MEDIA_EXT = new Set(["mp4", "mkv", "webm", "mp3", "m4a", "opus", "wav", "mov", "jpg", "jpeg", "png", "webp", "gif"]);
+const MEDIA_EXT = new Set([
+  "mp4",
+  "mkv",
+  "webm",
+  "mp3",
+  "m4a",
+  "opus",
+  "wav",
+  "mov",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+]);
 
 function findOutputFile(dir: string): string | null {
   const files = fs
@@ -75,6 +102,12 @@ function findOutputFile(dir: string): string | null {
 }
 
 function buildArgs(job: DownloadJob, dir: string): string[] {
+  const handler = getPlatformConfig(job.platform);
+  if (handler?.buildDownloadArgs) {
+    const customArgs = handler.buildDownloadArgs(job, dir);
+    if (customArgs) return customArgs;
+  }
+
   const out = path.join(dir, "%(id)s.%(ext)s");
   const args = [
     "--no-playlist",
@@ -95,21 +128,15 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
   if (job.kind.type === "audio") {
     args.push("-x", "--audio-format", "mp3", "--audio-quality", "5");
   } else if (job.kind.type === "image") {
-    if (job.platform !== "threads") {
-      args.push("-f", "Image");
-    }
+    args.push("-f", "Image");
   } else {
     const h = job.kind.height;
-    if (job.platform === "threads") {
-      args.push("--merge-output-format", "mp4");
-    } else {
-      args.push(
-        "-f",
-        `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]`,
-        "--merge-output-format",
-        "mp4"
-      );
-    }
+    args.push(
+      "-f",
+      `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]`,
+      "--merge-output-format",
+      "mp4",
+    );
   }
   args.push(job.info.webpageUrl || job.info.id);
   return args;
@@ -117,7 +144,7 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
 
 export async function runDownload(
   job: DownloadJob,
-  report: (percent: number | null, stage: string) => void
+  report: (percent: number | null, stage: string) => void,
 ): Promise<JobResult> {
   const dir = jobOutputDir(job);
   fs.mkdirSync(dir, { recursive: true });
@@ -126,10 +153,15 @@ export async function runDownload(
   const started = Date.now();
 
   const code = await new Promise<number>((resolve, reject) => {
-    const child = spawn(config.bin.ytDlp, buildArgs(job, dir), { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(config.bin.ytDlp, buildArgs(job, dir), {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     job.child = child;
     let stderrBuf = "";
-    const hardTimeout = setTimeout(() => child.kill("SIGKILL"), config.queueTimeoutSec * 1000);
+    const hardTimeout = setTimeout(
+      () => child.kill("SIGKILL"),
+      config.queueTimeoutSec * 1000,
+    );
 
     child.stdout.on("data", (buf: Buffer) => {
       for (const line of buf.toString().split("\n")) {
@@ -138,9 +170,12 @@ export async function runDownload(
           report(Number(pct[1]), "Mengunduh…");
           continue;
         }
-        if (/\[ExtractAudio\]|\[FFmpegVideoConvertor\]/.test(line)) report(null, "Mengonversi…");
-        else if (/\[Merger\]|\[FixupM4a\]|\[FixupVerb\]/.test(line)) report(null, "Menggabungkan audio/video…");
-        else if (/\[download\] Finished/.test(line)) report(100, "Mengonversi…");
+        if (/\[ExtractAudio\]|\[FFmpegVideoConvertor\]/.test(line))
+          report(null, "Mengonversi…");
+        else if (/\[Merger\]|\[FixupM4a\]|\[FixupVerb\]/.test(line))
+          report(null, "Menggabungkan audio/video…");
+        else if (/\[download\] Finished/.test(line))
+          report(100, "Mengonversi…");
       }
     });
     child.stderr.on("data", (buf: Buffer) => {
@@ -155,7 +190,8 @@ export async function runDownload(
       clearTimeout(hardTimeout);
       if (job.cancelled) return resolve(-1);
       if (c === 0) return resolve(0);
-      const msg = stderrBuf.match(/ERROR:\s*(.+)/)?.[1] ?? "proses unduhan gagal";
+      const msg =
+        stderrBuf.match(/ERROR:\s*(.+)/)?.[1] ?? "proses unduhan gagal";
       reject(new Error(msg));
     });
   });
@@ -185,7 +221,8 @@ export function sweepStaleTmp(): void {
   for (const entry of fs.readdirSync(config.tmpDir)) {
     const p = path.join(config.tmpDir, entry);
     try {
-      if (Date.now() - fs.statSync(p).mtimeMs > maxAge) fs.rmSync(p, { recursive: true, force: true });
+      if (Date.now() - fs.statSync(p).mtimeMs > maxAge)
+        fs.rmSync(p, { recursive: true, force: true });
     } catch {
       /* ignore */
     }
