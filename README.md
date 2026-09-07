@@ -1,4 +1,4 @@
-# AnyClip Bot
+# Snap Save Kit Bot
 
 Bot Telegram pengunduh video & audio multi-platform.
 
@@ -157,7 +157,7 @@ QUEUE_TIMEOUT_SEC=900          # timeout per job (detik)
 YOUTUBE_COOKIES_TXT=           # path cookies.txt untuk konten YouTube age-restrict
 YTDLP_PATH=yt-dlp              # path binary yt-dlp jika tidak di PATH
 FFMPEG_PATH=                   # path ffmpeg; kosong = pakai ffmpeg-static fallback
-DB_PATH=data/anyclip.db
+DB_PATH=data/snapkit.db
 TMP_DIR=data/tmp
 ```
 

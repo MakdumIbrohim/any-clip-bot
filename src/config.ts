@@ -48,7 +48,7 @@ export const config = {
     ytDlp: process.env.YTDLP_PATH ?? "yt-dlp",
     ffmpeg: resolveFfmpeg(),
   },
-  dbPath: process.env.DB_PATH ?? path.join(root, "data", "anyclip.db"),
+  dbPath: process.env.DB_PATH ?? path.join(root, "data", "snapkit.db"),
   tmpDir: process.env.TMP_DIR ?? path.join(root, "data", "tmp"),
 };
 

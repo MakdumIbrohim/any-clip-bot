@@ -1,7 +1,7 @@
 {
-  "name": "anyclip-bot",
+  "name": "snap-save-kit-bot",
   "version": "1.0.0",
-  "description": "Bot Telegram pengunduh video & audio multi-platform (AnyClip Bot)",
+  "description": "Bot Telegram pengunduh video & audio multi-platform (Snap Save Kit Bot)",
   "type": "module",
   "engines": {
     "node": ">=20"
