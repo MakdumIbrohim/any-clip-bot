@@ -1,10 +1,18 @@
 # Snap Save Kit Bot
 
-Bot Telegram pengunduh video & audio multi-platform.
+Bot Telegram pengunduh video, audio, dan album foto multi-platform.
 
 **Platform didukung:** YouTube, TikTok, Instagram, Facebook, X (Twitter), Threads
 
-**Alur:** Kirim link → lihat pratinjau (thumbnail, judul, durasi, estimasi ukuran) → pilih format/resolusi → terima file.
+**Fitur:**
+- Unduh video MP4 (pilihan resolusi hingga 1080p).
+- Ekstrak audio MP3.
+- Unduh post gambar/foto tunggal maupun album slide (TikTok photo slide, Instagram carousel, Facebook photos).
+- Pilihan unduh satu foto tertentu atau semua slide sekaligus (media group/album).
+- Fallback scraper mandiri untuk post foto Facebook dan Instagram yang gagal diproses oleh yt-dlp.
+- Dukungan autentikasi cookies (YouTube dan Facebook) untuk konten privat/login-wall.
+
+**Alur:** Kirim link → lihat pratinjau (thumbnail/album slide, judul, uploader, format) → pilih format/foto → terima file.
 
 ---
 
@@ -13,7 +21,7 @@ Bot Telegram pengunduh video & audio multi-platform.
 | Kebutuhan | Versi |
 |---|---|
 | Node.js | ≥ 20 |
-| yt-dlp | Terbaru |
+| yt-dlp | Terbaru (`yt-dlp -U`) |
 | ffmpeg | ≥ 4 (untuk MP3 / mux MP4) |
 
 ### Install yt-dlp
@@ -102,7 +110,7 @@ Bot API standar: **maks 50 MB per file**.
 
 Kalau file melebihi batas, bot memberitahu ukurannya dan menyarankan resolusi lebih rendah atau format MP3.
 
-Untuk melewati limit 50 MB (sampai 2 GB), jalankan [Local Bot API Server](https://github.com/tdlib/telegram-bot-api) dan set `YTDLP_PATH` / arahkan bot ke server lokal.
+Untuk melewati limit 50 MB (sampai 2 GB), jalankan [Local Bot API Server](https://github.com/tdlib/telegram-bot-api) dan sesuaikan nilai `MAX_UPLOAD_MB` di `.env`.
 
 ---
 
@@ -110,19 +118,33 @@ Untuk melewati limit 50 MB (sampai 2 GB), jalankan [Local Bot API Server](https:
 
 ```
 src/
-  index.ts        — entry point, validasi env, mulai polling
-  bot.ts          — handler pesan + callback, preview, kirim file
-  admin.ts        — perintah admin
-  queue.ts        — antrian job (p-queue)
-  downloader.ts   — yt-dlp subprocess, estimasi ukuran, cleanup
-  extractor.ts    — fetch info video via yt-dlp -J
-  detect.ts       — deteksi platform dari URL
-  config.ts       — env/config
-  db.ts           — SQLite (quota, log, user, settings)
+  index.ts               — entry point bot
+  config.ts              — konfigurasi lingkungan & path binari
+  db.ts                  — database SQLite (kuota, logs, settings)
+  bot/
+    index.ts             — workflow bot, handler perintah, preview, kirim file
+    keyboards.ts         — pembentukan inline keyboard video & slide gambar
+    sender.ts            — logic pengiriman dokumen, audio, video, dan media group
+    guards.ts            — filter akses, kuota harian, whitelist, admin
+    utils.ts             — escape HTML, token generator, pending session map
+  platforms/
+    index.ts             — dispatcher platform, deteksi URL, mapping domain
+    types.ts             — interface PlatformConfig
+    youtube.ts           — konfigurasi YouTube
+    tiktok.ts            — handler TikTok video & slide foto
+    instagram.ts         — handler Instagram video & carousel fallback scraper
+    facebook.ts          — handler Facebook video & fallback photo scraper
+    threads.ts           — konfigurasi Threads
+    x.ts                 — konfigurasi X / Twitter
+  services/
+    downloader.ts        — download media via yt-dlp & download gambar
+    extractor.ts         — ekstraksi metadata via yt-dlp -J + image fallback
+    queue.ts             — antrian download (p-queue)
 scripts/
-  test-detect.ts  — unit test deteksi URL
-  test-pipeline.ts — integrasi: fetch info + opsional download
-data/             — DB + file sementara (auto-dibuat, jangan di-commit)
+  test-detect.ts         — unit test deteksi URL semua platform
+  test-pipeline.ts       — tes integrasi fetch metadata & download video/audio
+  test-single-and-all.ts — tes download single slide vs all slides album
+data/                    — database SQLite + folder file temporary
 ```
 
 ---
@@ -130,10 +152,13 @@ data/             — DB + file sementara (auto-dibuat, jangan di-commit)
 ## Tes
 
 ```bash
-# Unit test deteksi URL
+# Unit test deteksi URL platform
 npx tsx scripts/test-detect.ts
 
-# Tes info video (butuh internet)
+# Tes download single foto vs semua foto album
+npx tsx scripts/test-single-and-all.ts
+
+# Tes metadata video (butuh internet)
 npx tsx scripts/test-pipeline.ts "https://youtu.be/dQw4w9WgXcQ"
 
 # Tes unduh MP3 end-to-end
@@ -145,20 +170,22 @@ npx tsx scripts/test-pipeline.ts "https://youtu.be/dQw4w9WgXcQ" download
 ## Konfigurasi Lengkap `.env`
 
 ```env
-BOT_TOKEN=                    # Wajib
+BOT_TOKEN=                    # Wajib dari @BotFather
 ADMIN_IDS=                    # user_id admin, pisah koma
 ACCESS_MODE=public             # public | whitelist
 WHITELIST_IDS=                 # user_id diizinkan jika whitelist, pisah koma
-DAILY_LIMIT=10                 # unduhan sukses per user per hari
-MAX_RESOLUTION=1080            # resolusi tertinggi yang ditawarkan (mis. 720)
-MAX_UPLOAD_MB=50               # batas upload ke Telegram
-CONCURRENCY=2                  # job paralel
-QUEUE_TIMEOUT_SEC=900          # timeout per job (detik)
-YOUTUBE_COOKIES_TXT=           # path cookies.txt untuk konten YouTube age-restrict
-YTDLP_PATH=yt-dlp              # path binary yt-dlp jika tidak di PATH
-FFMPEG_PATH=                   # path ffmpeg; kosong = pakai ffmpeg-static fallback
-DB_PATH=data/snapkit.db
-TMP_DIR=data/tmp
+DAILY_LIMIT=10                 # batas unduhan sukses per user per hari
+MAX_RESOLUTION=1080            # batas resolusi video (mis. 720 / 1080)
+MAX_UPLOAD_MB=50               # batas upload file Telegram (default 50 MB)
+CONCURRENCY=2                  # batas proses unduhan paralel
+QUEUE_TIMEOUT_SEC=900          # timeout proses per job (detik)
+PREVIEW_TTL_MIN=30             # masa berlaku tombol pilihan format (menit)
+YOUTUBE_COOKIES_TXT=           # path cookies.txt untuk YouTube age-restricted
+FACEBOOK_COOKIES_TXT=          # path cookies.txt untuk Facebook login-wall
+YTDLP_PATH=yt-dlp              # path binari yt-dlp jika custom
+FFMPEG_PATH=                   # path binari ffmpeg jika custom
+DB_PATH=data/snapkit.db        # lokasi file database SQLite
+TMP_DIR=data/tmp               # lokasi direktori penyimpanan sementara
 ```
 
 ---
