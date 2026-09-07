@@ -95,15 +95,21 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
   if (job.kind.type === "audio") {
     args.push("-x", "--audio-format", "mp3", "--audio-quality", "5");
   } else if (job.kind.type === "image") {
-    args.push("-f", "Image");
+    if (job.platform !== "threads") {
+      args.push("-f", "Image");
+    }
   } else {
     const h = job.kind.height;
-    args.push(
-      "-f",
-      `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]`,
-      "--merge-output-format",
-      "mp4"
-    );
+    if (job.platform === "threads") {
+      args.push("--merge-output-format", "mp4");
+    } else {
+      args.push(
+        "-f",
+        `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]`,
+        "--merge-output-format",
+        "mp4"
+      );
+    }
   }
   args.push(job.info.webpageUrl || job.info.id);
   return args;

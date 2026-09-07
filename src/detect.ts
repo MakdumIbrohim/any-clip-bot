@@ -71,7 +71,7 @@ export function hasVideoPath(url: string, platform: Platform): boolean {
       case "x":
         return /\/status\/\d+/i.test(pathname);
       case "threads":
-        return /\/(post|thread)\/[\w-]+/i.test(pathname);
+        return /\/(post|thread|t)\/[\w-]+/i.test(pathname);
     }
   } catch {
     return false;

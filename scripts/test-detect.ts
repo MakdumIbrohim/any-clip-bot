@@ -26,6 +26,9 @@ assert.equal(
   detectPlatform("https://www.threads.net/@user/post/Cabc"),
   "threads",
 );
+assert.equal(detectPlatform("https://www.threads.com/t/CuYrF4qpuJa"), "threads");
+assert.equal(hasVideoPath("https://www.threads.net/t/CuYrF4qpuJa", "threads"), true);
+assert.equal(hasVideoPath("https://www.threads.com/@user/post/Dc-piAKk0G4", "threads"), true);
 assert.equal(detectPlatform("https://gmail.com/inbox"), null);
 assert.equal(detectPlatform("not a url"), null);
 assert.equal(
