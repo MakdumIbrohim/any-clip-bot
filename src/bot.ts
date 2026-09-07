@@ -206,10 +206,30 @@ async function sendPreview(
 ) {
   const heights = availableHeights(info);
   const hasAudio = info.formats.some((f) => f.acodec !== "none");
+
+  if (info.isImage) {
+    const token = newToken();
+    pending.set(token, { info, platform, userId, expires: Date.now() + config.previewTtlMin * 60_000 });
+    const kb = new InlineKeyboard().text("📷 Unduh Gambar", `dl:${token}:i`);
+    const caption = [
+      `📌 <b>${esc(info.title.slice(0, 150))}</b>`,
+      `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
+      "",
+      "Konten ini berupa gambar/foto.",
+    ].join("\n");
+    if (info.thumbnail) {
+      await bot.api.sendPhoto(chatId, info.thumbnail, { caption, parse_mode: "HTML", reply_markup: kb })
+        .catch(() => bot.api.sendMessage(chatId, caption, { parse_mode: "HTML", reply_markup: kb }));
+    } else {
+      await bot.api.sendMessage(chatId, caption, { parse_mode: "HTML", reply_markup: kb });
+    }
+    return;
+  }
+
   if (heights.length === 0 && !hasAudio) {
     await bot.api.sendMessage(
       chatId,
-      "❌ Konten ini tidak memiliki format video atau audio yang bisa diunduh. Mungkin berupa gambar/foto atau format tidak didukung."
+      "❌ Konten ini tidak memiliki format video atau audio yang bisa diunduh."
     );
     return;
   }
@@ -284,7 +304,7 @@ bot.on("callback_query:data", async (ctx) => {
       show_alert: true,
     });
 
-  const m = data.match(/^dl:(\w+):([va])(\d*)$/);
+  const m = data.match(/^dl:(\w+):([vai])(\d*)$/);
   if (!m) return ctx.answerCallbackQuery();
   const [, token, kind, heightStr] = m;
 
@@ -314,7 +334,9 @@ bot.on("callback_query:data", async (ctx) => {
   const kindObj =
     kind === "a"
       ? ({ type: "audio" } as const)
-      : ({ type: "video", height: Number(heightStr) } as const);
+      : kind === "i"
+        ? ({ type: "image" } as const)
+        : ({ type: "video", height: Number(heightStr) } as const);
 
   await ctx.answerCallbackQuery({ text: "Masuk antrian pemrosesan…" });
   const previewMsgId = (
@@ -430,30 +452,26 @@ async function uploadAndSend(
   size: number,
 ) {
   const isAudio = job.kind.type === "audio";
-  const caption = `${isAudio ? "🎵" : "🎬"} ${job.info.title.slice(0, 100)}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
+  const isImage = job.kind.type === "image";
+  const emoji = isAudio ? "🎵" : isImage ? "📷" : "🎬";
+  const caption = `${emoji} ${job.info.title.slice(0, 100)}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
 
   const videoName = `${sanitize(job.info.title)}.mp4`;
   const audioName = `${sanitize(job.info.title)}.mp3`;
   const senders = isAudio
     ? [
-        () =>
-          bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
-            caption,
-          }),
-        () =>
-          bot.api.sendDocument(chatId, new InputFile(filePath, audioName), {
-            caption,
-          }),
+        () => bot.api.sendAudio(chatId, new InputFile(filePath, audioName), { caption }),
+        () => bot.api.sendDocument(chatId, new InputFile(filePath, audioName), { caption }),
       ]
-    : [
-        () =>
-          bot.api.sendVideo(chatId, new InputFile(filePath, videoName), {
-            caption,
-            supports_streaming: true,
-          }),
-        () =>
-          bot.api.sendDocument(chatId, new InputFile(filePath), { caption }),
-      ];
+    : isImage
+      ? [
+          () => bot.api.sendPhoto(chatId, new InputFile(filePath), { caption }),
+          () => bot.api.sendDocument(chatId, new InputFile(filePath), { caption }),
+        ]
+      : [
+          () => bot.api.sendVideo(chatId, new InputFile(filePath, videoName), { caption, supports_streaming: true }),
+          () => bot.api.sendDocument(chatId, new InputFile(filePath), { caption }),
+        ];
 
   let lastErr: unknown;
   for (const send of senders) {

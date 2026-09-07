@@ -61,7 +61,7 @@ export function jobOutputDir(job: DownloadJob): string {
   return path.join(config.tmpDir, job.id);
 }
 
-const MEDIA_EXT = new Set(["mp4", "mkv", "webm", "mp3", "m4a", "opus", "wav", "mov"]);
+const MEDIA_EXT = new Set(["mp4", "mkv", "webm", "mp3", "m4a", "opus", "wav", "mov", "jpg", "jpeg", "png", "webp", "gif"]);
 
 function findOutputFile(dir: string): string | null {
   const files = fs
@@ -94,6 +94,8 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
   }
   if (job.kind.type === "audio") {
     args.push("-x", "--audio-format", "mp3", "--audio-quality", "5");
+  } else if (job.kind.type === "image") {
+    args.push("-f", "Image");
   } else {
     const h = job.kind.height;
     args.push(

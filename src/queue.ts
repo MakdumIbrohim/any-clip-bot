@@ -5,7 +5,7 @@ import { consumeQuota, logEvent } from "./db.js";
 import type { Platform } from "./detect.js";
 import type { VideoInfo } from "./extractor.js";
 
-export type JobKind = { type: "video"; height: number } | { type: "audio" };
+export type JobKind = { type: "video"; height: number } | { type: "audio" } | { type: "image" };
 
 export type JobResult =
   | { ok: true; path: string; size: number; ms: number }
