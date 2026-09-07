@@ -204,6 +204,16 @@ async function sendPreview(
   info: VideoInfo,
   platform: Platform,
 ) {
+  const heights = availableHeights(info);
+  const hasAudio = info.formats.some((f) => f.acodec !== "none");
+  if (heights.length === 0 && !hasAudio) {
+    await bot.api.sendMessage(
+      chatId,
+      "❌ Konten ini tidak memiliki format video atau audio yang bisa diunduh. Mungkin berupa gambar/foto atau format tidak didukung."
+    );
+    return;
+  }
+
   const token = newToken();
   pending.set(token, {
     info,
@@ -212,7 +222,6 @@ async function sendPreview(
     expires: Date.now() + config.previewTtlMin * 60_000,
   });
 
-  const heights = availableHeights(info);
   const kb = new InlineKeyboard();
   const lines: string[] = [];
   lines.push(`📌 <b>${esc(info.title.slice(0, 150))}</b>`);

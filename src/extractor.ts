@@ -95,6 +95,10 @@ export async function fetchInfo(url: string, platform: Platform): Promise<VideoI
     throw new ExtractError("Link playlist tidak didukung. Kirim link satu video saja.", "unsupported");
   }
 
+  if (data._type === "image" || data.ext === "jpg" || data.ext === "jpeg" || data.ext === "png" || data.ext === "webp") {
+    throw new ExtractError("Link ini mengarah ke gambar/foto, bukan video atau audio. Bot hanya mendukung pengunduhan video dan audio.", "unsupported");
+  }
+
   const formats: VideoFormat[] = (data.formats ?? [])
     .filter((f: any) => f.vcodec !== "none" || f.acodec !== "none")
     .map((f: any) => ({
@@ -109,6 +113,16 @@ export async function fetchInfo(url: string, platform: Platform): Promise<VideoI
       tbr: f.tbr ?? null,
       source: f.source ?? "",
     }));
+
+  const imageExts = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif", "heic"]);
+  const hasMedia = formats.some((f) => f.vcodec !== "none" || f.acodec !== "none");
+  const allImages = (data.formats ?? []).every((f: any) => imageExts.has((f.ext ?? "").toLowerCase()));
+  if (!hasMedia || (allImages && (data.formats ?? []).length > 0)) {
+    throw new ExtractError(
+      "Konten ini berupa gambar/foto, bukan video atau audio. Bot hanya mendukung pengunduhan video dan audio.",
+      "unsupported"
+    );
+  }
 
   return {
     id: String(data.id ?? ""),
