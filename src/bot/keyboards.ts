@@ -25,13 +25,29 @@ export function buildImagePreview(
   });
 
   const count = info.images?.length ?? 1;
-  const label = count > 1 ? `📷 Unduh Semua Slide (${count} Foto)` : "📷 Unduh Gambar";
-  const keyboard = new InlineKeyboard().text(label, `dl:${token}:i`);
+  const keyboard = new InlineKeyboard();
+
+  if (count > 1) {
+    keyboard.text(`📷 Unduh Semua Slide (${count} Foto)`, `dl:${token}:iall`).row();
+
+    // Baris tombol angka slide (maksimal 5 kolom per baris)
+    const MAX_BUTTONS = Math.min(count, 30);
+    for (let i = 0; i < MAX_BUTTONS; i++) {
+      keyboard.text(`Foto ${i + 1}`, `dl:${token}:i${i + 1}`);
+      if ((i + 1) % 5 === 0) keyboard.row();
+    }
+    if (MAX_BUTTONS % 5 !== 0) keyboard.row();
+  } else {
+    keyboard.text("📷 Unduh Gambar", `dl:${token}:i1`);
+  }
+
   const caption = [
     `📌 <b>${esc(info.title.slice(0, 150))}</b>`,
     `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
     "",
-    count > 1 ? `Konten ini berupa album foto (${count} slide gambar).` : "Konten ini berupa gambar/foto.",
+    count > 1
+      ? `Konten ini berupa album foto (${count} slide gambar).\nPilih unduh semua atau pilih nomor foto tertentu:`
+      : "Konten ini berupa gambar/foto.",
   ].join("\n");
 
   return { caption, keyboard };

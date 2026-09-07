@@ -20,7 +20,9 @@ export async function uploadAndSend(
   const isAudio = job.kind.type === "audio";
   const isImage = job.kind.type === "image";
   const emoji = isAudio ? "🎵" : isImage ? "📷" : "🎬";
-  const caption = `${emoji} ${job.info.title.slice(0, 100)}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
+  const imageIndex = job.kind.type === "image" ? job.kind.index : undefined;
+  const slideLabel = imageIndex !== undefined ? ` [Foto ${imageIndex}]` : "";
+  const caption = `${emoji} ${job.info.title.slice(0, 100)}${slideLabel}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
 
   // Multi-image album
   if (isImage && allPaths && allPaths.length > 1) {

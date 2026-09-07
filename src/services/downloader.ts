@@ -127,18 +127,29 @@ export async function runDownload(
   const started = Date.now();
 
   // Penanganan khusus untuk multi-image / slide album
-  if (job.kind.type === "image" && job.info.images && job.info.images.length > 1) {
-    const urls = job.info.images;
+  if (job.kind.type === "image" && job.info.images && job.info.images.length > 0) {
+    const allUrls = job.info.images;
+    const isSingle = job.kind.index !== undefined;
+    const targetUrls = isSingle
+      ? [allUrls[Math.max(0, Math.min(job.kind.index! - 1, allUrls.length - 1))]]
+      : allUrls;
+
     const downloadedPaths: string[] = [];
     let totalBytes = 0;
 
-    for (let i = 0; i < urls.length; i++) {
+    for (let i = 0; i < targetUrls.length; i++) {
       if (job.cancelled) return { ok: false, code: "cancelled" };
-      report(Math.round(((i + 1) / urls.length) * 100), `Mengunduh foto ${i + 1}/${urls.length}…`);
+      const labelNumber = isSingle ? job.kind.index! : i + 1;
+      report(
+        Math.round(((i + 1) / targetUrls.length) * 100),
+        isSingle
+          ? `Mengunduh foto ${labelNumber}…`
+          : `Mengunduh foto ${i + 1}/${targetUrls.length}…`
+      );
 
-      const imgUrl = urls[i];
+      const imgUrl = targetUrls[i];
       const ext = imgUrl.match(/\.(jpe?g|png|webp)/i)?.[1]?.toLowerCase() || "jpg";
-      const filePath = path.join(dir, `slide_${String(i + 1).padStart(3, "0")}.${ext}`);
+      const filePath = path.join(dir, `slide_${String(labelNumber).padStart(3, "0")}.${ext}`);
 
       try {
         const res = await fetch(imgUrl, {
@@ -152,12 +163,12 @@ export async function runDownload(
         totalBytes += buf.length;
         downloadedPaths.push(filePath);
       } catch (err) {
-        console.error(`[downloader] gagal mengunduh slide ${i + 1}:`, err);
+        console.error(`[downloader] gagal mengunduh slide ${labelNumber}:`, err);
       }
     }
 
     if (downloadedPaths.length === 0) {
-      throw new Error("Gagal mengunduh gambar slide.");
+      throw new Error("Gagal mengunduh gambar.");
     }
 
     report(null, "Mengirim…");
@@ -168,7 +179,7 @@ export async function runDownload(
     return {
       ok: true,
       path: downloadedPaths[0],
-      paths: downloadedPaths,
+      paths: isSingle ? undefined : downloadedPaths,
       size: totalBytes,
       ms: Date.now() - started,
     };

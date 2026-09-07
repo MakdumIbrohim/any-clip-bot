@@ -53,6 +53,33 @@ async function sendPreview(
 ) {
   if (info.isImage) {
     const { caption, keyboard } = buildImagePreview(info, platform, userId);
+    const images = info.images ?? [];
+
+    // Jika memiliki slide lebih dari 1 gambar, kirim album foto sebagai preview visual
+    if (images.length > 1) {
+      try {
+        const CHUNK_SIZE = 10;
+        for (let i = 0; i < images.length; i += CHUNK_SIZE) {
+          const chunk = images.slice(i, i + CHUNK_SIZE);
+          const media = chunk.map((url, idx) => ({
+            type: "photo" as const,
+            media: url,
+            caption: `Foto ${i + idx + 1}/${images.length}`,
+          }));
+          await bot.api.sendMediaGroup(chatId, media);
+        }
+
+        // Kirim caption & keyboard pengendali format setelah album
+        await bot.api.sendMessage(chatId, caption, {
+          parse_mode: "HTML",
+          reply_markup: keyboard,
+        });
+        return;
+      } catch (err) {
+        console.error("[bot] Gagal mengirim media group preview, fallback ke single thumbnail:", err);
+      }
+    }
+
     if (info.thumbnail) {
       await bot.api
         .sendPhoto(chatId, info.thumbnail, {
@@ -202,9 +229,9 @@ bot.on("callback_query:data", async (ctx) => {
     });
   }
 
-  const m = data.match(/^dl:(\w+):([vai])(\d*)$/);
+  const m = data.match(/^dl:(\w+):([va]|i(?:all|\d*))(\d*)$/);
   if (!m) return ctx.answerCallbackQuery();
-  const [, token, kind, heightStr] = m;
+  const [, token, kindFull, heightStr] = m;
 
   const p = takePending(token);
   if (!p) {
@@ -229,12 +256,20 @@ bot.on("callback_query:data", async (ctx) => {
     });
   }
 
-  const kindObj =
-    kind === "a"
-      ? ({ type: "audio" } as const)
-      : kind === "i"
-        ? ({ type: "image" } as const)
-        : ({ type: "video", height: Number(heightStr) } as const);
+  let kindObj: { type: "video"; height: number } | { type: "audio" } | { type: "image"; index?: number };
+
+  if (kindFull === "a") {
+    kindObj = { type: "audio" };
+  } else if (kindFull.startsWith("i")) {
+    const sub = kindFull.slice(1);
+    if (sub === "all" || !sub) {
+      kindObj = { type: "image" };
+    } else {
+      kindObj = { type: "image", index: Number(sub) };
+    }
+  } else {
+    kindObj = { type: "video", height: Number(heightStr) };
+  }
 
   await ctx.answerCallbackQuery({ text: "Masuk antrian pemrosesan…" });
   const previewMsgId = (
