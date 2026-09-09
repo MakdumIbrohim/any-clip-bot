@@ -74,6 +74,8 @@ DAILY_LIMIT=10              # batas unduhan per user per hari
 
 ## Jalankan
 
+### Cara Manual (Node.js di Host)
+
 ```bash
 # Development (hot-reload)
 npm run dev
@@ -82,6 +84,27 @@ npm run dev
 npm run build
 npm start
 ```
+
+### Cara Docker (Rekomendasi untuk VPS/Server)
+
+Node.js, `ffmpeg`, dan `yt-dlp` sudah terpasang otomatis di dalam image Docker.
+
+```bash
+# 1. Siapkan file environment
+cp .env.example .env
+nano .env
+
+# 2. Jalankan container di background
+docker compose up -d --build
+
+# 3. Cek log bot
+docker compose logs -f
+
+# 4. Hentikan container
+docker compose down
+```
+
+Data database SQLite dan temporary file otomatis tersimpan persisten di folder `./data` host server.
 
 ---
 
