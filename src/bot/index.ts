@@ -26,6 +26,9 @@ import { esc, pending, progressBar, takePending } from "./utils.js";
 
 export const bot = new Bot(config.botToken);
 
+// Daftarkan admin commands lebih awal sebelum message handler
+registerAdminCommands(bot, { isAdmin });
+
 const activeByChat = new Map<string, DownloadJob>();
 
 function jobKey(chatId: number, userId: number): string {
@@ -352,8 +355,6 @@ initQueue(runDownload, (job, percent, stage) => {
     .editMessageText(job.chatId, job.statusMessageId, text)
     .catch(() => {});
 });
-
-registerAdminCommands(bot, { isAdmin });
 
 bot.catch((err) => {
   console.error("[bot] unhandled error:", err.error ?? err);
