@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: snap-save-kit-bot:latest
     container_name: snap-save-kit-bot
     restart: unless-stopped
     env_file:
