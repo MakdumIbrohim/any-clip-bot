@@ -15,7 +15,6 @@ function buildSuccessCaption(job: DownloadJob, size: number): string {
   const isImage = job.kind.type === "image";
   const isSpotify = job.platform === "spotify";
 
-  const icon = isAudio ? "🎵" : isImage ? "📷" : "🎬";
   const lines: string[] = [];
 
   // Judul
@@ -23,32 +22,32 @@ function buildSuccessCaption(job: DownloadJob, size: number): string {
   lines.push("");
 
   // Baris informasi
-  lines.push(`🌐 <b>Platform:</b> ${PLATFORM_LABEL[job.platform]}`);
+  lines.push(`Platform: ${PLATFORM_LABEL[job.platform]}`);
 
   if (job.info.uploader) {
     const role = isSpotify || isAudio ? "Artis" : "Kreator";
-    lines.push(`👤 <b>${role}:</b> ${esc(job.info.uploader)}`);
+    lines.push(`${role}: ${esc(job.info.uploader)}`);
   }
 
   if (isSpotify && job.info.album) {
-    lines.push(`💿 <b>Album:</b> ${esc(job.info.album)}`);
+    lines.push(`Album: ${esc(job.info.album)}`);
   }
 
   if (!isImage && job.info.duration) {
-    lines.push(`⏱ <b>Durasi:</b> ${formatDuration(job.info.duration)}`);
+    lines.push(`Durasi: ${formatDuration(job.info.duration)}`);
   }
 
   if (job.kind.type === "video") {
     lines.push(
-      `📐 <b>Resolusi:</b> ${job.kind.height ? `${job.kind.height}p` : "HD / Asli"}`,
+      `Resolusi: ${job.kind.height ? `${job.kind.height}p` : "HD / Asli"}`,
     );
   } else if (job.kind.type === "image" && job.kind.index !== undefined) {
-    lines.push(`🖼 <b>Slide:</b> Foto ke-${job.kind.index}`);
+    lines.push(`Slide: Foto ke-${job.kind.index}`);
   }
 
-  lines.push(`📦 <b>Ukuran:</b> ${formatBytes(size)}`);
+  lines.push(`Ukuran: ${formatBytes(size)}`);
   lines.push("");
-  lines.push(`⚡ <i>Diunduh via Snap Save Kit Bot</i>`);
+  lines.push(`<i>Diunduh via Snap Save Kit Bot</i>`);
 
   return lines.join("\n");
 }

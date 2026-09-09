@@ -142,30 +142,28 @@ async function sendPreview(
 
 // Commands
 bot.command(["start", "help"], async (ctx) => {
-  const name = ctx.from?.first_name ? ` ${esc(ctx.from.first_name)}` : "";
+  const name = ctx.from?.first_name ? `, <b>${esc(ctx.from.first_name)}</b>` : "";
   const text = [
-    `👋 Halo<b>${name}</b>, selamat datang di <b>Snap Save Kit Bot</b>!`,
+    `Selamat datang di <b>Snap Save Kit Bot</b>${name}.`,
     "",
-    "🚀 <b>Cara Pakai:</b>",
-    "Cukup kirimkan tautan/link postingan ke chat ini. Bot akan otomatis mendeteksi platform dan menampilkan pilihan format pengunduhan.",
+    "Layanan pengunduhan media multi-platform:",
+    "- YouTube (Video & Audio)",
+    "- TikTok (Video & Foto Slide)",
+    "- Instagram (Reels & Carousel)",
+    "- Facebook (Video & Foto)",
+    "- X / Twitter (Video)",
+    "- Threads (Video & Foto)",
+    "- Spotify (Lagu, Cover & Lirik)",
     "",
-    "🌐 <b>Platform yang Didukung:</b>",
-    "• 🔴 <b>YouTube:</b> Video & Audio",
-    "• 🎵 <b>TikTok:</b> Video tanpa watermark & Slide Foto",
-    "• 📸 <b>Instagram:</b> Reels, Video & Carousel Slide",
-    "• 🔵 <b>Facebook:</b> Video & Foto",
-    "• 🖤 <b>X (Twitter):</b> Video",
-    "• 🧵 <b>Threads:</b> Video & Foto",
-    "• 🟢 <b>Spotify:</b> Unduh lagu + Cover Art + Lirik",
+    "Silakan kirimkan tautan untuk memulai proses pengunduhan.",
+    `Batas kuota harian: <code>${effectiveDailyLimit()}</code> unduhan (reset tiap tengah malam).`,
     "",
-    `📊 <b>Kuota Anda:</b> <code>${effectiveDailyLimit()}</code> unduhan/hari (reset setiap tengah malam).`,
+    "Perintah menu:",
+    "/status — Cek kuota dan posisi antrian",
+    "/cancel — Batalkan unduhan yang berjalan",
+    "/help — Panduan penggunaan",
     "",
-    "📌 <b>Perintah Menu:</b>",
-    "• /status — Cek sisa kuota & antrian",
-    "• /cancel — Batalkan unduhan yang sedang berjalan",
-    "• /help — Tampilkan pesan panduan ini",
-    "",
-    "⚠️ <i>Disclaimer: Gunakan bot ini secara bijak untuk konten pribadi atau berizin. Kami tidak menyimpan file unduhan Anda di server.</i>",
+    "<i>Catatan: Gunakan secara bijak untuk konten berizin. Bot tidak menyimpan file Anda.</i>",
   ].join("\n");
   await ctx.reply(text, { parse_mode: "HTML" });
 });
@@ -227,7 +225,7 @@ bot.on("message:text", async (ctx) => {
   if (rateLimitErr) return ctx.reply(rateLimitErr);
 
   const ack = await ctx.reply(
-    `🔎 Link ${PLATFORM_LABEL[platform]} terdeteksi. Mengambil info video…`,
+    `Link ${PLATFORM_LABEL[platform]} terdeteksi. Mengambil info konten…`,
   );
 
   try {

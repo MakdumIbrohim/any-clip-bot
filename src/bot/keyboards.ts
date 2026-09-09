@@ -29,7 +29,7 @@ export function buildImagePreview(
 
   if (count > 1) {
     keyboard
-      .text(`📷 Unduh Semua Slide (${count} Foto)`, `dl:${token}:iall`)
+      .text(`Unduh Semua Slide (${count} Foto)`, `dl:${token}:iall`)
       .row();
 
     // Baris tombol angka slide (maksimal 5 kolom per baris)
@@ -40,16 +40,16 @@ export function buildImagePreview(
     }
     if (MAX_BUTTONS % 5 !== 0) keyboard.row();
   } else {
-    keyboard.text("📷 Unduh Gambar", `dl:${token}:i1`);
+    keyboard.text("Unduh Gambar", `dl:${token}:i1`);
   }
 
   const caption = [
-    `📌 <b>${esc(info.title.slice(0, 150))}</b>`,
+    `<b>${esc(info.title.slice(0, 150))}</b>`,
     `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
     "",
     count > 1
-      ? `Konten ini berupa album foto (${count} slide gambar).\nPilih unduh semua atau pilih nomor foto tertentu:`
-      : "Konten ini berupa gambar/foto.",
+      ? `Konten berupa album foto (${count} slide gambar).\nPilih unduh semua atau pilih nomor foto:`
+      : "Konten berupa gambar/foto.",
   ].join("\n");
 
   return { caption, keyboard };
@@ -70,12 +70,12 @@ export function buildVideoPreview(
 
   const keyboard = new InlineKeyboard();
   const lines: string[] = [];
-  lines.push(`📌 <b>${esc(info.title.slice(0, 150))}</b>`);
+  lines.push(`<b>${esc(info.title.slice(0, 150))}</b>`);
   lines.push(
     `Platform: ${PLATFORM_LABEL[platform]}${info.uploader ? ` • ${esc(info.uploader.slice(0, 60))}` : ""}`,
   );
   lines.push(
-    `Durasi: ${info.isLive ? "🔴 LIVE" : formatDuration(info.duration)}`,
+    `Durasi: ${info.isLive ? "LIVE" : formatDuration(info.duration)}`,
   );
   lines.push("");
 
@@ -86,11 +86,11 @@ export function buildVideoPreview(
     lines.push("Pilih format:");
     for (const h of heights.slice(0, 5)) {
       const size = estimateVideoSize(info, h);
-      const label = `🎥 MP4 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`;
+      const label = `MP4 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`;
       keyboard
         .text(
           label.length > 56
-            ? `🎥 ${h}p${size ? ` • ~${formatBytes(size)}` : ""}`
+            ? `${h}p${size ? ` • ~${formatBytes(size)}` : ""}`
             : label,
           `dl:${token}:v${h}`,
         )
@@ -100,7 +100,7 @@ export function buildVideoPreview(
     // Platform video single-stream tanpa info height (TikTok, IG Reels, FB Video)
     lines.push("Pilih format:");
     keyboard
-      .text("🎥 Unduh Video MP4 (Kualitas Terbaik)", `dl:${token}:v0`)
+      .text("MP4 Video (Kualitas Terbaik)", `dl:${token}:v0`)
       .row();
   } else {
     lines.push("Unduh lagu:");
@@ -109,7 +109,7 @@ export function buildVideoPreview(
   const audioSize = estimateAudioSize(info);
   keyboard
     .text(
-      `🎵 Unduh MP3 Audio${audioSize ? ` • ~${formatBytes(audioSize)}` : ""}`,
+      `MP3 Audio${audioSize ? ` • ~${formatBytes(audioSize)}` : ""}`,
       `dl:${token}:a`,
     )
     .row();
