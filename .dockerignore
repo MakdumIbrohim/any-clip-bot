@@ -1,0 +1,9 @@
+node_modules
+dist
+data
+*.log
+.git
+.github
+.kilo
+dist.zip
+.env
