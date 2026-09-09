@@ -142,21 +142,30 @@ async function sendPreview(
 
 // Commands
 bot.command(["start", "help"], async (ctx) => {
+  const name = ctx.from?.first_name ? ` ${esc(ctx.from.first_name)}` : "";
   const text = [
-    "🎬 <b>Snap Save Kit Bot</b>",
+    `👋 Halo<b>${name}</b>, selamat datang di <b>Snap Save Kit Bot</b>!`,
     "",
-    "Kirim link dari <b>YouTube, TikTok, Instagram, Facebook, X, Threads, atau Spotify</b> — bot akan menampilkan pratinjau lalu kamu pilih format:",
-    "• 🎥 Video MP4 (resolusi sesuai sumber)",
-    "• 🎵 Audio MP3 / Lagu",
-    "• 📷 Foto / Album Slide",
+    "🚀 <b>Cara Pakai:</b>",
+    "Cukup kirimkan tautan/link postingan ke chat ini. Bot akan otomatis mendeteksi platform dan menampilkan pilihan format pengunduhan.",
     "",
-    `Kuota harian: <b>${effectiveDailyLimit()}</b> unduhan/hari.`,
+    "🌐 <b>Platform yang Didukung:</b>",
+    "• 🔴 <b>YouTube:</b> Video & Audio",
+    "• 🎵 <b>TikTok:</b> Video tanpa watermark & Slide Foto",
+    "• 📸 <b>Instagram:</b> Reels, Video & Carousel Slide",
+    "• 🔵 <b>Facebook:</b> Video & Foto",
+    "• 🖤 <b>X (Twitter):</b> Video",
+    "• 🧵 <b>Threads:</b> Video & Foto",
+    "• 🟢 <b>Spotify:</b> Unduh lagu + Cover Art + Lirik",
     "",
-    "Perintah:",
-    "/cancel — batalkan unduhan berjalan",
-    "/status — cek kuota & posisi antrian",
+    `📊 <b>Kuota Anda:</b> <code>${effectiveDailyLimit()}</code> unduhan/hari (reset setiap tengah malam).`,
     "",
-    "⚠️ <i>Disclaimer: gunakan hanya untuk konten milik sendiri atau yang berizin. Mengunduh konten pihak ketiga dapat melanggar ketentuan platform dan hak cipta. Bot tidak menyimpan file Anda.</i>",
+    "📌 <b>Perintah Menu:</b>",
+    "• /status — Cek sisa kuota & antrian",
+    "• /cancel — Batalkan unduhan yang sedang berjalan",
+    "• /help — Tampilkan pesan panduan ini",
+    "",
+    "⚠️ <i>Disclaimer: Gunakan bot ini secara bijak untuk konten pribadi atau berizin. Kami tidak menyimpan file unduhan Anda di server.</i>",
   ].join("\n");
   await ctx.reply(text, { parse_mode: "HTML" });
 });
