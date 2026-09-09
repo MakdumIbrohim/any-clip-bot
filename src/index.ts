@@ -7,16 +7,26 @@ import { sweepStaleTmp } from "./services/index.js";
 
 function checkBinary(name: string, bin: string): boolean {
   try {
-    const out = execFileSync(bin, ["-version"], { encoding: "utf8", timeout: 15_000 });
-    console.log(`[init] ${name} OK (${out.trim().split("\n")[0].slice(0, 80)})`);
+    const out = execFileSync(bin, ["-version"], {
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+    console.log(
+      `[init] ${name} OK (${out.trim().split("\n")[0].slice(0, 80)})`,
+    );
     return true;
   } catch {
     try {
-      const out2 = execFileSync(bin, ["--version"], { encoding: "utf8", timeout: 15_000 });
+      const out2 = execFileSync(bin, ["--version"], {
+        encoding: "utf8",
+        timeout: 15_000,
+      });
       console.log(`[init] ${name} ${out2.trim().split("\n")[0].slice(0, 80)}`);
       return true;
     } catch {
-      console.error(`[init] ${name} tidak ditemukan ('${bin}'). Bot butuh ${name} untuk memproses video.`);
+      console.error(
+        `[init] ${name} tidak ditemukan ('${bin}'). Bot butuh ${name} untuk memproses video.`,
+      );
       return false;
     }
   }
@@ -27,17 +37,23 @@ fs.mkdirSync(config.tmpDir, { recursive: true });
 sweepStaleTmp();
 
 // Jalankan pembersihan file sementara secara berkala (tiap 30 menit)
-setInterval(() => {
-  sweepStaleTmp();
-}, 30 * 60 * 1000).unref();
+setInterval(
+  () => {
+    sweepStaleTmp();
+  },
+  30 * 60 * 1000,
+).unref();
 
 const okYtDlp = checkBinary("yt-dlp", config.bin.ytDlp);
 const okFfmpeg = checkBinary("ffmpeg", config.bin.ffmpeg);
 if (!okYtDlp) process.exit(1);
-if (!okFfmpeg) console.error("[init] tanpa ffmpeg, konversi MP3/muxing MP4 akan gagal.");
+if (!okFfmpeg)
+  console.error("[init] tanpa ffmpeg, konversi MP3/muxing MP4 akan gagal.");
 
 if (config.accessMode === "whitelist") {
-  console.log(`[init] mode whitelist: ${config.whitelistIds.size} user diizinkan + admin.`);
+  console.log(
+    `[init] mode whitelist: ${config.whitelistIds.size} user diizinkan + admin.`,
+  );
 }
 
 process.once("SIGINT", () => {
@@ -48,5 +64,20 @@ process.once("SIGINT", () => {
 
 console.log("[init] Snap Save Kit Bot jalan (polling).");
 await bot.start({
-  onStart: (me) => console.log(`[init] @${me.username} siap menerima link.`),
+  onStart: async (me) => {
+    console.log(`[init] @${me.username} siap menerima link.`);
+    try {
+      await bot.api.setMyCommands([
+        { command: "start", description: "Mulai & panduan penggunaan bot" },
+        { command: "status", description: "Cek sisa kuota & antrian unduhan" },
+        { command: "cancel", description: "Batalkan proses unduhan berjalan" },
+        { command: "help", description: "Bantuan & informasi platform" },
+      ]);
+      console.log(
+        "[init] Menu perintah bot (/) berhasil didaftarkan ke Telegram.",
+      );
+    } catch (err) {
+      console.error("[init] Gagal mendaftarkan menu perintah bot:", err);
+    }
+  },
 });
