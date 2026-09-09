@@ -221,6 +221,15 @@ bot.on("message:text", async (ctx) => {
   try {
     const info = await fetchInfo(url, platform);
     await ctx.api.deleteMessage(ctx.chat.id, ack.message_id).catch(() => {});
+
+    // Validasi durasi maksimum video/audio
+    if (info.duration && info.duration > config.maxDurationSec) {
+      const maxMin = Math.round(config.maxDurationSec / 60);
+      return ctx.reply(
+        `❌ Durasi konten terlalu panjang (${Math.round(info.duration / 60)} menit). Maksimal durasi yang diizinkan adalah ${maxMin} menit.`,
+      );
+    }
+
     ensureUser(ctx.from.id, ctx.from.username);
     await sendPreview(ctx.chat.id, ctx.from.id, info, platform);
   } catch (err) {

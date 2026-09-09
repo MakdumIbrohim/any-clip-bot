@@ -38,6 +38,7 @@ export const config = {
     : "public") as "public" | "whitelist",
   whitelistIds: ids("WHITELIST_IDS"),
   dailyLimit: num("DAILY_LIMIT", 10),
+  maxDurationSec: num("MAX_DURATION_SEC", 3600), // Default: maks 1 jam (3600 detik)
   maxResolution: num("MAX_RESOLUTION", 1080),
   maxUploadMb: num("MAX_UPLOAD_MB", 50),
   concurrency: num("CONCURRENCY", 2),

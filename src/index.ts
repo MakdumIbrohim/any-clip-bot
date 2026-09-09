@@ -26,6 +26,11 @@ assertConfig();
 fs.mkdirSync(config.tmpDir, { recursive: true });
 sweepStaleTmp();
 
+// Jalankan pembersihan file sementara secara berkala (tiap 30 menit)
+setInterval(() => {
+  sweepStaleTmp();
+}, 30 * 60 * 1000).unref();
+
 const okYtDlp = checkBinary("yt-dlp", config.bin.ytDlp);
 const okFfmpeg = checkBinary("ffmpeg", config.bin.ffmpeg);
 if (!okYtDlp) process.exit(1);

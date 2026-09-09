@@ -205,6 +205,7 @@ ADMIN_IDS=                    # user_id admin, pisah koma
 ACCESS_MODE=public             # public | whitelist
 WHITELIST_IDS=                 # user_id diizinkan jika whitelist, pisah koma
 DAILY_LIMIT=10                 # batas unduhan sukses per user per hari
+MAX_DURATION_SEC=3600          # batas durasi maksimal video/audio (detik, default 1 jam)
 RATE_LIMIT_WINDOW_SEC=60       # jendela waktu anti-spam (detik)
 RATE_LIMIT_MAX_REQUESTS=5      # batas request per jendela waktu per user
 MAX_RESOLUTION=1080            # batas resolusi video (mis. 720 / 1080)
