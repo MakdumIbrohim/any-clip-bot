@@ -112,6 +112,21 @@ export const tiktokPlatform: PlatformConfig = {
     throw new ExtractError("USE_DEFAULT_YTDLP", "error");
   },
   buildDownloadArgs: (job, dir) => {
+    // Jika video diekstrak via TikWM (memiliki direct URL di webpageUrl)
+    if (job.kind.type === "video" && job.info.webpageUrl?.startsWith("http")) {
+      const out = `${dir}/%(id)s.%(ext)s`;
+      return [
+        "--no-playlist",
+        "--no-warnings",
+        "--newline",
+        "--progress",
+        "--no-part",
+        "--restrict-filenames",
+        "-o",
+        out,
+        job.info.webpageUrl,
+      ];
+    }
     if (job.kind.type === "image") {
       // yt-dlp direct image download
       const out = `${dir}/%(id)s.%(ext)s`;
