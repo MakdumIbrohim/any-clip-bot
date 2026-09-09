@@ -26,3 +26,27 @@ export function checkQuota(userId: number): string | null {
   }
   return null;
 }
+
+// In-memory sliding window rate limiter per user
+const requestTimestamps = new Map<number, number[]>();
+
+export function checkRateLimit(userId: number): string | null {
+  if (isAdmin(userId)) return null;
+
+  const now = Date.now();
+  const windowMs = config.rateLimit.windowSec * 1000;
+  const maxReq = config.rateLimit.maxRequests;
+
+  const timestamps = requestTimestamps.get(userId) ?? [];
+  const validTimestamps = timestamps.filter((t) => now - t < windowMs);
+
+  if (validTimestamps.length >= maxReq) {
+    const oldest = validTimestamps[0];
+    const retryAfterSec = Math.max(1, Math.ceil((windowMs - (now - oldest)) / 1000));
+    return `⚠️ Terlalu banyak permintaan (spam protection). Harap tunggu ${retryAfterSec} detik sebelum mencoba lagi.`;
+  }
+
+  validTimestamps.push(now);
+  requestTimestamps.set(userId, validTimestamps);
+  return null;
+}

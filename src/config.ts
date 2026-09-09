@@ -43,6 +43,10 @@ export const config = {
   concurrency: num("CONCURRENCY", 2),
   queueTimeoutSec: num("QUEUE_TIMEOUT_SEC", 900),
   previewTtlMin: num("PREVIEW_TTL_MIN", 30),
+  rateLimit: {
+    windowSec: num("RATE_LIMIT_WINDOW_SEC", 60),
+    maxRequests: num("RATE_LIMIT_MAX_REQUESTS", 5),
+  },
   youTubeCookies: process.env.YOUTUBE_COOKIES_TXT ?? "",
   facebookCookies: process.env.FACEBOOK_COOKIES_TXT ?? "",
   bin: {

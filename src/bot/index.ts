@@ -19,7 +19,7 @@ import {
   type DownloadJob,
   type VideoInfo,
 } from "../services/index.js";
-import { checkAccess, checkQuota, isAdmin } from "./guards.js";
+import { checkAccess, checkQuota, checkRateLimit, isAdmin } from "./guards.js";
 import { buildImagePreview, buildVideoPreview } from "./keyboards.js";
 import { handleJobResult } from "./sender.js";
 import { esc, pending, progressBar, takePending } from "./utils.js";
@@ -211,6 +211,9 @@ bot.on("message:text", async (ctx) => {
   const quotaErr = checkQuota(ctx.from.id);
   if (quotaErr) return ctx.reply(quotaErr);
 
+  const rateLimitErr = checkRateLimit(ctx.from.id);
+  if (rateLimitErr) return ctx.reply(rateLimitErr);
+
   const ack = await ctx.reply(
     `🔎 Link ${PLATFORM_LABEL[platform]} terdeteksi. Mengambil info video…`,
   );
@@ -265,6 +268,14 @@ bot.on("callback_query:data", async (ctx) => {
   if (quotaErr) {
     return ctx.answerCallbackQuery({
       text: quotaErr.slice(0, 190),
+      show_alert: true,
+    });
+  }
+
+  const rateLimitErr = checkRateLimit(fromId);
+  if (rateLimitErr) {
+    return ctx.answerCallbackQuery({
+      text: rateLimitErr.slice(0, 190),
       show_alert: true,
     });
   }

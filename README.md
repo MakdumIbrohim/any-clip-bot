@@ -12,6 +12,7 @@ Bot Telegram pengunduh video, audio, album foto, dan lagu multi-platform.
 - Unduh post gambar/foto tunggal maupun album slide (TikTok photo slide, Instagram carousel, Facebook photos).
 - Pilihan unduh satu foto tertentu atau semua slide sekaligus (media group/album).
 - Fallback scraper mandiri untuk post foto Facebook dan Instagram yang gagal diproses oleh yt-dlp.
+- Perlindungan anti-spam / in-memory rate limiter per pengguna untuk mencegah overload server.
 - Dukungan autentikasi cookies (YouTube dan Facebook) untuk konten privat/login-wall.
 
 **Alur:** Kirim link → lihat pratinjau (thumbnail/album slide, judul, uploader, format) → pilih format/foto → terima file.
@@ -204,6 +205,8 @@ ADMIN_IDS=                    # user_id admin, pisah koma
 ACCESS_MODE=public             # public | whitelist
 WHITELIST_IDS=                 # user_id diizinkan jika whitelist, pisah koma
 DAILY_LIMIT=10                 # batas unduhan sukses per user per hari
+RATE_LIMIT_WINDOW_SEC=60       # jendela waktu anti-spam (detik)
+RATE_LIMIT_MAX_REQUESTS=5      # batas request per jendela waktu per user
 MAX_RESOLUTION=1080            # batas resolusi video (mis. 720 / 1080)
 MAX_UPLOAD_MB=50               # batas upload file Telegram (default 50 MB)
 CONCURRENCY=2                  # batas proses unduhan paralel
