@@ -10,7 +10,8 @@ import type { DownloadJob, JobResult } from "./queue.js";
 export function availableHeights(info: VideoInfo): number[] {
   const set = new Set<number>();
   for (const f of info.formats) {
-    if (f.vcodec !== "none" && f.height && f.height <= config.maxResolution) set.add(f.height);
+    if (f.vcodec !== "none" && f.height && f.height <= config.maxResolution)
+      set.add(f.height);
   }
   return [...set].sort((a, b) => b - a);
 }
@@ -19,18 +20,25 @@ function bytesForBitrate(kbps: number, duration: number): number {
   return Math.round((kbps * 1000 * duration) / 8);
 }
 
-export function estimateVideoSize(info: VideoInfo, height: number): number | null {
+export function estimateVideoSize(
+  info: VideoInfo,
+  height: number,
+): number | null {
   if (!info.duration) return null;
   const video = info.formats
     .filter((f) => f.vcodec !== "none" && f.height === height)
     .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
   if (!video) return null;
-  let bytes = video.filesize ?? (video.tbr ? bytesForBitrate(video.tbr, info.duration) : 0);
+  let bytes =
+    video.filesize ??
+    (video.tbr ? bytesForBitrate(video.tbr, info.duration) : 0);
   if (video.acodec === "none") {
     const audio = info.formats
       .filter((f) => f.vcodec === "none" && f.acodec !== "none")
       .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
-    bytes += audio?.filesize ?? (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : 128_000);
+    bytes +=
+      audio?.filesize ??
+      (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : 128_000);
   }
   return bytes > 0 ? bytes : null;
 }
@@ -40,7 +48,9 @@ export function estimateAudioSize(info: VideoInfo): number | null {
   const audio = info.formats
     .filter((f) => f.vcodec === "none" && f.acodec !== "none")
     .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
-  const fromSource = audio?.filesize ?? (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : null);
+  const fromSource =
+    audio?.filesize ??
+    (audio?.tbr ? bytesForBitrate(audio.tbr, info.duration) : null);
   const mp3Default = bytesForBitrate(160, info.duration);
   return fromSource ? Math.min(fromSource, mp3Default) : mp3Default;
 }
@@ -56,14 +66,30 @@ export function formatDuration(sec: number): string {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.floor(sec % 60);
-  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+  return h
+    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function jobOutputDir(job: DownloadJob): string {
   return path.join(config.tmpDir, job.id);
 }
 
-const MEDIA_EXT = new Set(["mp4", "mkv", "webm", "mp3", "m4a", "opus", "wav", "mov", "jpg", "jpeg", "png", "webp", "gif"]);
+const MEDIA_EXT = new Set([
+  "mp4",
+  "mkv",
+  "webm",
+  "mp3",
+  "m4a",
+  "opus",
+  "wav",
+  "mov",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+]);
 
 function findOutputFile(dir: string): string | null {
   const files = fs
@@ -109,21 +135,32 @@ function buildArgs(job: DownloadJob, dir: string): string[] {
     args.push("-f", "Image");
   } else {
     const h = job.kind.height;
-    args.push(
-      "-f",
-      `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]`,
-      "--merge-output-format",
-      "mp4"
-    );
+    if (h && h > 0) {
+      args.push(
+        "-f",
+        `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`,
+        "--merge-output-format",
+        "mp4",
+      );
+    } else {
+      // Format video tanpa tinggi eksplisit (misal TikTok, IG, FB)
+      args.push(
+        "-f",
+        "bestvideo+bestaudio/best",
+        "--merge-output-format",
+        "mp4",
+      );
+    }
   }
-  const source = job.info.formats[0]?.source || job.info.webpageUrl || job.info.id;
+  const source =
+    job.info.formats[0]?.source || job.info.webpageUrl || job.info.id;
   args.push(source);
   return args;
 }
 
 export async function runDownload(
   job: DownloadJob,
-  report: (percent: number | null, stage: string) => void
+  report: (percent: number | null, stage: string) => void,
 ): Promise<JobResult> {
   const dir = jobOutputDir(job);
   fs.mkdirSync(dir, { recursive: true });
@@ -132,11 +169,19 @@ export async function runDownload(
   const started = Date.now();
 
   // Penanganan khusus untuk multi-image / slide album
-  if (job.kind.type === "image" && job.info.images && job.info.images.length > 0) {
+  if (
+    job.kind.type === "image" &&
+    job.info.images &&
+    job.info.images.length > 0
+  ) {
     const allUrls = job.info.images;
     const isSingle = job.kind.index !== undefined;
     const targetUrls = isSingle
-      ? [allUrls[Math.max(0, Math.min(job.kind.index! - 1, allUrls.length - 1))]]
+      ? [
+          allUrls[
+            Math.max(0, Math.min(job.kind.index! - 1, allUrls.length - 1))
+          ],
+        ]
       : allUrls;
 
     const downloadedPaths: string[] = [];
@@ -149,12 +194,16 @@ export async function runDownload(
         Math.round(((i + 1) / targetUrls.length) * 100),
         isSingle
           ? `Mengunduh foto ${labelNumber}…`
-          : `Mengunduh foto ${i + 1}/${targetUrls.length}…`
+          : `Mengunduh foto ${i + 1}/${targetUrls.length}…`,
       );
 
       const imgUrl = targetUrls[i];
-      const ext = imgUrl.match(/\.(jpe?g|png|webp)/i)?.[1]?.toLowerCase() || "jpg";
-      const filePath = path.join(dir, `slide_${String(labelNumber).padStart(3, "0")}.${ext}`);
+      const ext =
+        imgUrl.match(/\.(jpe?g|png|webp)/i)?.[1]?.toLowerCase() || "jpg";
+      const filePath = path.join(
+        dir,
+        `slide_${String(labelNumber).padStart(3, "0")}.${ext}`,
+      );
 
       try {
         const res = await fetch(imgUrl, {
@@ -168,7 +217,10 @@ export async function runDownload(
         totalBytes += buf.length;
         downloadedPaths.push(filePath);
       } catch (err) {
-        console.error(`[downloader] gagal mengunduh slide ${labelNumber}:`, err);
+        console.error(
+          `[downloader] gagal mengunduh slide ${labelNumber}:`,
+          err,
+        );
       }
     }
 
@@ -178,7 +230,12 @@ export async function runDownload(
 
     report(null, "Mengirim…");
     if (totalBytes > config.maxUploadMb * 1024 * 1024) {
-      return { ok: false, code: "too_big", size: totalBytes, path: downloadedPaths[0] };
+      return {
+        ok: false,
+        code: "too_big",
+        size: totalBytes,
+        path: downloadedPaths[0],
+      };
     }
 
     return {
@@ -191,10 +248,15 @@ export async function runDownload(
   }
 
   const code = await new Promise<number>((resolve, reject) => {
-    const child = spawn(config.bin.ytDlp, buildArgs(job, dir), { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(config.bin.ytDlp, buildArgs(job, dir), {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     job.child = child;
     let stderrBuf = "";
-    const hardTimeout = setTimeout(() => child.kill("SIGKILL"), config.queueTimeoutSec * 1000);
+    const hardTimeout = setTimeout(
+      () => child.kill("SIGKILL"),
+      config.queueTimeoutSec * 1000,
+    );
 
     child.stdout.on("data", (buf: Buffer) => {
       for (const line of buf.toString().split("\n")) {
@@ -203,9 +265,12 @@ export async function runDownload(
           report(Number(pct[1]), "Mengunduh…");
           continue;
         }
-        if (/\[ExtractAudio\]|\[FFmpegVideoConvertor\]/.test(line)) report(null, "Mengonversi…");
-        else if (/\[Merger\]|\[FixupM4a\]|\[FixupVerb\]/.test(line)) report(null, "Menggabungkan audio/video…");
-        else if (/\[download\] Finished/.test(line)) report(100, "Mengonversi…");
+        if (/\[ExtractAudio\]|\[FFmpegVideoConvertor\]/.test(line))
+          report(null, "Mengonversi…");
+        else if (/\[Merger\]|\[FixupM4a\]|\[FixupVerb\]/.test(line))
+          report(null, "Menggabungkan audio/video…");
+        else if (/\[download\] Finished/.test(line))
+          report(100, "Mengonversi…");
       }
     });
     child.stderr.on("data", (buf: Buffer) => {
@@ -220,7 +285,8 @@ export async function runDownload(
       clearTimeout(hardTimeout);
       if (job.cancelled) return resolve(-1);
       if (c === 0) return resolve(0);
-      const msg = stderrBuf.match(/ERROR:\s*(.+)/)?.[1] ?? "proses unduhan gagal";
+      const msg =
+        stderrBuf.match(/ERROR:\s*(.+)/)?.[1] ?? "proses unduhan gagal";
       reject(new Error(msg));
     });
   });
@@ -233,7 +299,10 @@ export async function runDownload(
   if (!file) throw new Error("File hasil unduhan tidak ditemukan.");
 
   // Inject cover art, album, artist, title, lyrics jika platform spotify / audio dengan metadata
-  if (job.kind.type === "audio" && (job.info.thumbnail || job.info.album || job.info.lyrics)) {
+  if (
+    job.kind.type === "audio" &&
+    (job.info.thumbnail || job.info.album || job.info.lyrics)
+  ) {
     try {
       report(null, "Menyematkan cover & metadata…");
       const tags: NodeID3.Tags = {};
@@ -250,7 +319,9 @@ export async function runDownload(
 
       if (job.info.thumbnail) {
         try {
-          const cRes = await fetch(job.info.thumbnail, { signal: AbortSignal.timeout(10_000) });
+          const cRes = await fetch(job.info.thumbnail, {
+            signal: AbortSignal.timeout(10_000),
+          });
           if (cRes.ok) {
             const buf = Buffer.from(await cRes.arrayBuffer());
             tags.image = {
@@ -289,7 +360,8 @@ export function sweepStaleTmp(): void {
   for (const entry of fs.readdirSync(config.tmpDir)) {
     const p = path.join(config.tmpDir, entry);
     try {
-      if (Date.now() - fs.statSync(p).mtimeMs > maxAge) fs.rmSync(p, { recursive: true, force: true });
+      if (Date.now() - fs.statSync(p).mtimeMs > maxAge)
+        fs.rmSync(p, { recursive: true, force: true });
     } catch {
       /* ignore */
     }

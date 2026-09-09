@@ -39,7 +39,9 @@ function buildSuccessCaption(job: DownloadJob, size: number): string {
   }
 
   if (job.kind.type === "video") {
-    lines.push(`📐 <b>Resolusi:</b> ${job.kind.height}p`);
+    lines.push(
+      `📐 <b>Resolusi:</b> ${job.kind.height ? `${job.kind.height}p` : "HD / Asli"}`,
+    );
   } else if (job.kind.type === "image" && job.kind.index !== undefined) {
     lines.push(`🖼 <b>Slide:</b> Foto ke-${job.kind.index}`);
   }
@@ -57,7 +59,7 @@ export async function uploadAndSend(
   job: DownloadJob,
   filePath: string,
   size: number,
-  allPaths?: string[]
+  allPaths?: string[],
 ): Promise<void> {
   const isAudio = job.kind.type === "audio";
   const isImage = job.kind.type === "image";
@@ -88,16 +90,22 @@ export async function uploadAndSend(
             caption,
             parse_mode: "HTML",
             title: job.info.title.slice(0, 100),
-            performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
+            performer: job.info.uploader
+              ? job.info.uploader.slice(0, 100)
+              : undefined,
             duration: job.info.duration || undefined,
-            thumbnail: job.info.thumbnail ? new InputFile({ url: job.info.thumbnail }) : undefined,
+            thumbnail: job.info.thumbnail
+              ? new InputFile({ url: job.info.thumbnail })
+              : undefined,
           }),
         () =>
           bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
             caption,
             parse_mode: "HTML",
             title: job.info.title.slice(0, 100),
-            performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
+            performer: job.info.uploader
+              ? job.info.uploader.slice(0, 100)
+              : undefined,
             duration: job.info.duration || undefined,
           }),
         () =>
@@ -149,7 +157,7 @@ export async function handleJobResult(
   bot: Bot,
   chatId: number,
   job: DownloadJob,
-  result: Awaited<DownloadJob["promise"]>
+  result: Awaited<DownloadJob["promise"]>,
 ): Promise<void> {
   const statusId = job.statusMessageId;
   const finish = async (text: string) => {
@@ -164,12 +172,21 @@ export async function handleJobResult(
 
   if (result.ok) {
     try {
-      await uploadAndSend(bot, chatId, job, result.path, result.size, result.paths);
+      await uploadAndSend(
+        bot,
+        chatId,
+        job,
+        result.path,
+        result.size,
+        result.paths,
+      );
       await (statusId
         ? bot.api.deleteMessage(chatId, statusId).catch(() => {})
         : Promise.resolve());
     } catch (err) {
-      await finish(`❌ Gagal mengirim file: ${(err as Error).message.slice(0, 200)}`);
+      await finish(
+        `❌ Gagal mengirim file: ${(err as Error).message.slice(0, 200)}`,
+      );
     } finally {
       cleanupJobDir(job);
     }
@@ -179,13 +196,13 @@ export async function handleJobResult(
   if (!result.ok && result.code === "too_big") {
     cleanupJobDir(job);
     const lower = availableHeights(job.info).filter(
-      (h) => h < (job.kind.type === "video" ? job.kind.height : 1e9)
+      (h) => h < (job.kind.type === "video" ? job.kind.height : 1e9),
     );
     await finish(
       `❌ Ukuran file ${formatBytes(result.size)} melebihi batas kirim bot (${config.maxUploadMb} MB).` +
         (lower.length
           ? `\nCoba resolusi lebih rendah: ${lower.slice(0, 3).join("p / ")}p, atau pilih MP3.`
-          : "\nPilih format MP3 saja sebagai alternatif.")
+          : "\nPilih format MP3 saja sebagai alternatif."),
     );
     return;
   }
@@ -198,6 +215,6 @@ export async function handleJobResult(
 
   cleanupJobDir(job);
   await finish(
-    `❌ ${(result.code === "error" ? result.message : "Kesalahan tidak diketahui.").slice(0, 300)}`
+    `❌ ${(result.code === "error" ? result.message : "Kesalahan tidak diketahui.").slice(0, 300)}`,
   );
 }

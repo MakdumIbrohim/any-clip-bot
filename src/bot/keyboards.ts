@@ -80,6 +80,8 @@ export function buildVideoPreview(
   lines.push("");
 
   const heights = availableHeights(info);
+  const hasVideoFormat = info.formats.some((f) => f.vcodec !== "none");
+
   if (heights.length > 0) {
     lines.push("Pilih format:");
     for (const h of heights.slice(0, 5)) {
@@ -94,6 +96,12 @@ export function buildVideoPreview(
         )
         .row();
     }
+  } else if (hasVideoFormat && platform !== "spotify") {
+    // Platform video single-stream tanpa info height (TikTok, IG Reels, FB Video)
+    lines.push("Pilih format:");
+    keyboard
+      .text("🎥 Unduh Video MP4 (Kualitas Terbaik)", `dl:${token}:v0`)
+      .row();
   } else {
     lines.push("Unduh lagu:");
   }
