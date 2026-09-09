@@ -5,9 +5,51 @@ import {
   availableHeights,
   cleanupJobDir,
   formatBytes,
+  formatDuration,
   type DownloadJob,
 } from "../services/index.js";
-import { sanitize } from "./utils.js";
+import { esc, sanitize } from "./utils.js";
+
+function buildSuccessCaption(job: DownloadJob, size: number): string {
+  const isAudio = job.kind.type === "audio";
+  const isImage = job.kind.type === "image";
+  const isSpotify = job.platform === "spotify";
+
+  const icon = isAudio ? "🎵" : isImage ? "📷" : "🎬";
+  const lines: string[] = [];
+
+  // Judul
+  lines.push(`<b>${esc(job.info.title.slice(0, 150))}</b>`);
+  lines.push("");
+
+  // Baris informasi
+  lines.push(`🌐 <b>Platform:</b> ${PLATFORM_LABEL[job.platform]}`);
+
+  if (job.info.uploader) {
+    const role = isSpotify || isAudio ? "Artis" : "Kreator";
+    lines.push(`👤 <b>${role}:</b> ${esc(job.info.uploader)}`);
+  }
+
+  if (isSpotify && job.info.album) {
+    lines.push(`💿 <b>Album:</b> ${esc(job.info.album)}`);
+  }
+
+  if (!isImage && job.info.duration) {
+    lines.push(`⏱ <b>Durasi:</b> ${formatDuration(job.info.duration)}`);
+  }
+
+  if (job.kind.type === "video") {
+    lines.push(`📐 <b>Resolusi:</b> ${job.kind.height}p`);
+  } else if (job.kind.type === "image" && job.kind.index !== undefined) {
+    lines.push(`🖼 <b>Slide:</b> Foto ke-${job.kind.index}`);
+  }
+
+  lines.push(`📦 <b>Ukuran:</b> ${formatBytes(size)}`);
+  lines.push("");
+  lines.push(`⚡ <i>Diunduh via Snap Save Kit Bot</i>`);
+
+  return lines.join("\n");
+}
 
 export async function uploadAndSend(
   bot: Bot,
@@ -19,10 +61,7 @@ export async function uploadAndSend(
 ): Promise<void> {
   const isAudio = job.kind.type === "audio";
   const isImage = job.kind.type === "image";
-  const emoji = isAudio ? "🎵" : isImage ? "📷" : "🎬";
-  const imageIndex = job.kind.type === "image" ? job.kind.index : undefined;
-  const slideLabel = imageIndex !== undefined ? ` [Foto ${imageIndex}]` : "";
-  const caption = `${emoji} ${job.info.title.slice(0, 100)}${slideLabel}\n${PLATFORM_LABEL[job.platform]} • ${formatBytes(size)}`;
+  const caption = buildSuccessCaption(job, size);
 
   // Multi-image album
   if (isImage && allPaths && allPaths.length > 1) {
@@ -33,6 +72,7 @@ export async function uploadAndSend(
         type: "photo" as const,
         media: new InputFile(p),
         caption: i === 0 && idx === 0 ? caption : undefined,
+        parse_mode: "HTML" as const,
       }));
       await bot.api.sendMediaGroup(chatId, media);
     }
@@ -46,6 +86,7 @@ export async function uploadAndSend(
         () =>
           bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
             caption,
+            parse_mode: "HTML",
             title: job.info.title.slice(0, 100),
             performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
             duration: job.info.duration || undefined,
@@ -54,24 +95,42 @@ export async function uploadAndSend(
         () =>
           bot.api.sendAudio(chatId, new InputFile(filePath, audioName), {
             caption,
+            parse_mode: "HTML",
             title: job.info.title.slice(0, 100),
             performer: job.info.uploader ? job.info.uploader.slice(0, 100) : undefined,
             duration: job.info.duration || undefined,
           }),
-        () => bot.api.sendDocument(chatId, new InputFile(filePath, audioName), { caption }),
+        () =>
+          bot.api.sendDocument(chatId, new InputFile(filePath, audioName), {
+            caption,
+            parse_mode: "HTML",
+          }),
       ]
     : isImage
       ? [
-          () => bot.api.sendPhoto(chatId, new InputFile(filePath), { caption }),
-          () => bot.api.sendDocument(chatId, new InputFile(filePath), { caption }),
+          () =>
+            bot.api.sendPhoto(chatId, new InputFile(filePath), {
+              caption,
+              parse_mode: "HTML",
+            }),
+          () =>
+            bot.api.sendDocument(chatId, new InputFile(filePath), {
+              caption,
+              parse_mode: "HTML",
+            }),
         ]
       : [
           () =>
             bot.api.sendVideo(chatId, new InputFile(filePath, videoName), {
               caption,
+              parse_mode: "HTML",
               supports_streaming: true,
             }),
-          () => bot.api.sendDocument(chatId, new InputFile(filePath), { caption }),
+          () =>
+            bot.api.sendDocument(chatId, new InputFile(filePath), {
+              caption,
+              parse_mode: "HTML",
+            }),
         ];
 
   let lastErr: unknown;

@@ -1,3 +1,5 @@
+name: snap-save-kit-bot
+
 services:
   bot:
     build:
