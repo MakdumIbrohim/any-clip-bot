@@ -67,12 +67,40 @@ await bot.start({
   onStart: async (me) => {
     console.log(`[init] @${me.username} siap menerima link.`);
     try {
-      await bot.api.setMyCommands([
-        { command: "start", description: "Mulai & panduan penggunaan bot" },
-        { command: "status", description: "Cek sisa kuota & antrian unduhan" },
-        { command: "cancel", description: "Batalkan proses unduhan berjalan" },
-        { command: "help", description: "Bantuan & informasi platform" },
-      ]);
+      // Menu perintah standar untuk semua pengguna
+      await bot.api.setMyCommands(
+        [
+          { command: "start", description: "Mulai & panduan penggunaan bot" },
+          { command: "status", description: "Cek sisa kuota & antrian unduhan" },
+          { command: "cancel", description: "Batalkan proses unduhan berjalan" },
+          { command: "help", description: "Bantuan & informasi platform" },
+        ],
+        { scope: { type: "default" } },
+      );
+
+      // Daftarkan menu perintah lengkap (termasuk perintah admin) khusus untuk chat admin
+      for (const adminId of config.adminIds) {
+        try {
+          await bot.api.setMyCommands(
+            [
+              { command: "start", description: "Mulai & panduan bot" },
+              { command: "status", description: "Cek kuota & antrian" },
+              { command: "cancel", description: "Batalkan unduhan berjalan" },
+              { command: "stats", description: "[Admin] Statistik sistem & unduhan" },
+              { command: "limit", description: "[Admin] Ubah kuota harian" },
+              { command: "mode", description: "[Admin] Ubah mode public/whitelist" },
+              { command: "user", description: "[Admin] Cek pemakaian user" },
+              { command: "block", description: "[Admin] Blokir user" },
+              { command: "unblock", description: "[Admin] Buka blokir user" },
+              { command: "help", description: "Bantuan" },
+            ],
+            { scope: { type: "chat", chat_id: adminId } },
+          );
+        } catch {
+          // Abaikan jika bot belum pernah di-start oleh admin terkait
+        }
+      }
+
       console.log(
         "[init] Menu perintah bot (/) berhasil didaftarkan ke Telegram.",
       );
