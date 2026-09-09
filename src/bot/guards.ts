@@ -30,6 +30,17 @@ export function checkQuota(userId: number): string | null {
 // In-memory sliding window rate limiter per user
 const requestTimestamps = new Map<number, number[]>();
 
+// Bersihkan entri user yang sudah tidak aktif secara berkala agar tidak memicu memory leak
+setInterval(() => {
+  const now = Date.now();
+  const windowMs = config.rateLimit.windowSec * 1000;
+  for (const [userId, times] of requestTimestamps.entries()) {
+    if (times.length === 0 || now - times[times.length - 1] >= windowMs) {
+      requestTimestamps.delete(userId);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
 export function checkRateLimit(userId: number): string | null {
   if (isAdmin(userId)) return null;
 
