@@ -127,6 +127,7 @@ Data database SQLite dan temporary file otomatis tersimpan persisten di folder `
 | `/limit` | `/limit 20` | Ubah kuota harian (berlaku langsung) |
 | `/user` | `/user 123456` | Lihat pemakaian kuota user tertentu |
 | `/mode` | `/mode whitelist` | Ganti mode akses: `public` / `whitelist` |
+| `/broadcast` | `/broadcast Pesan pengumuman` | Kirim pesan pengumuman ke seluruh pengguna aktif |
 
 ---
 

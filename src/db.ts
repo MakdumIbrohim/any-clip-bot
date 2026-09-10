@@ -171,3 +171,10 @@ export function recentErrors(limit = 10) {
     .prepare("SELECT ts, user_id, platform, detail FROM logs WHERE ok = 0 ORDER BY id DESC LIMIT ?")
     .all(limit) as Array<{ ts: number; user_id: number; platform: string | null; detail: string | null }>;
 }
+
+export function getAllActiveUserIds(): number[] {
+  const rows = db
+    .prepare("SELECT user_id FROM users WHERE blocked = 0")
+    .all() as Array<{ user_id: number }>;
+  return rows.map((r) => r.user_id);
+}

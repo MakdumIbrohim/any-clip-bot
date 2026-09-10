@@ -92,6 +92,7 @@ await bot.start({
               { command: "user", description: "[Admin] Cek pemakaian user" },
               { command: "block", description: "[Admin] Blokir user" },
               { command: "unblock", description: "[Admin] Buka blokir user" },
+              { command: "broadcast", description: "[Admin] Kirim siaran ke semua user" },
               { command: "help", description: "Bantuan" },
             ],
             { scope: { type: "chat", chat_id: adminId } },

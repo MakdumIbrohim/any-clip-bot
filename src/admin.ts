@@ -2,6 +2,7 @@ import type { Bot, Context } from "grammy";
 import { config } from "./config.js";
 import {
   effectiveDailyLimit,
+  getAllActiveUserIds,
   getSetting,
   quotaUsed,
   recentErrors,
@@ -122,6 +123,57 @@ export function registerAdminCommands(
     }
     setSetting("access_mode", arg);
     await ctx.reply(`Mode akses diubah ke ${arg}.`);
+  });
+
+  bot.command("broadcast", async (ctx) => {
+    if (!guard(ctx)) return;
+
+    // Ambil isi pesan setelah perintah /broadcast
+    const rawText = ctx.message?.text ?? "";
+    const message = rawText.replace(/^\/broadcast\s*/i, "").trim();
+
+    if (!message) {
+      return ctx.reply(
+        "Format penggunaan: /broadcast <pesan pengumuman>\n\nContoh:\n/broadcast Halo semua, bot sedang maintenance server selama 15 menit.",
+      );
+    }
+
+    const userIds = getAllActiveUserIds();
+    if (userIds.length === 0) {
+      return ctx.reply("Belum ada pengguna terdaftar di database.");
+    }
+
+    const statusMsg = await ctx.reply(
+      `Memulai siaran pesan ke ${userIds.length} pengguna...`,
+    );
+
+    let success = 0;
+    let failed = 0;
+
+    const broadcastText = `<b>Pemberitahuan Sistem</b>\n\n${message}`;
+
+    for (const id of userIds) {
+      try {
+        await bot.api.sendMessage(id, broadcastText, { parse_mode: "HTML" });
+        success++;
+      } catch {
+        failed++;
+      }
+      // Delay 40ms per pesan (~25 pesan/detik) agar patuh rate limit Telegram Bot API (maks 30 msg/s)
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+
+    await ctx.api
+      .editMessageText(
+        ctx.chat.id,
+        statusMsg.message_id,
+        `Siaran selesai.\n\nTotal target: ${userIds.length}\nBerhasil terkirim: ${success}\nGagal (bot diblokir/dihapus): ${failed}`,
+      )
+      .catch(() =>
+        ctx.reply(
+          `Siaran selesai.\nBerhasil: ${success}\nGagal: ${failed}`,
+        ),
+      );
   });
 }
 
